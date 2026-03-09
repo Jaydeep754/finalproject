@@ -1064,9 +1064,13 @@ def admin_assign_order(request, pk):
 @login_required
 def download_invoice(request, payment_id):
     try:
-        payment = Payment.objects.get(id=payment_id, user=request.user)
-        # Fetch all orders associated with this payment
-        orders = OrderPlaced.objects.filter(payment=payment, user=request.user)
+        # If user is admin, they can download any invoice. Otherwise, only their own.
+        if is_admin(request.user):
+            payment = Payment.objects.get(id=payment_id)
+            orders = OrderPlaced.objects.filter(payment=payment)
+        else:
+            payment = Payment.objects.get(id=payment_id, user=request.user)
+            orders = OrderPlaced.objects.filter(payment=payment, user=request.user)
     except Payment.DoesNotExist:
         messages.error(request, "Invoice not found or unauthorized.")
         return redirect('orders')
