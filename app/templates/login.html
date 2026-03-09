@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sign In | Milk & More{% endblock title %}
+
+{% block main %}
+<div class="auth-wrapper" data-aos="fade-in">
+  <div class="auth-card" data-aos="zoom-in" data-aos-delay="200">
+    <div class="text-center mb-5">
+      <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: var(--accent) !important;">
+        <i class="bi bi-shield-lock-fill fs-1" style="color: var(--primary);"></i>
+      </div>
+      <h2 class="mb-2" style="font-family: 'Outfit'; letter-spacing: -1px;">Welcome</h2>
+      <p class="text-muted small text-uppercase letter-spacing-1">Access your dairy archive</p>
+    </div>
+
+    <form action="" method="post">
+      {% csrf_token %}
+
+      <div class="mb-4">
+        <label for="username"
+          class="form-label small fw-bold text-uppercase letter-spacing-1 text-muted mb-2 ps-2">Username / Email</label>
+        <input type="text" id="username" name="username" class="form-control" placeholder="Enter your username" required
+          autofocus>
+      </div>
+
+      <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-end mb-2 px-2">
+          <label for="password" class="form-label small fw-bold text-uppercase letter-spacing-1 text-muted mb-0">Secure
+            Passphrase</label>
+          <a href="{% url 'forgot_password' %}" class="small text-decoration-none fw-bold"
+            style="color: var(--primary);">Forgot Password?</a>
+        </div>
+        <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password"
+          required>
+      </div>
+
+      <div class="d-grid mb-4">
+        <button type="submit" class="btn btn-classic py-3">
+          Unlock Portal
+        </button>
+      </div>
+
+      <div class="text-center">
+        <p class="text-muted small">Need an entry?
+          <a href="{% url 'signup' %}" class="text-decoration-none fw-bold" style="color: var(--primary);">Sign Up</a>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock main %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Acquisition Search Results{% endblock title %}
+
+{% block main %}
+<div class="container py-5 my-5">
+    <div class="mb-5" data-aos="fade-down">
+        <h2 class="display-5 fw-bold" style="font-family: 'Cinzel';">Search Results</h2>
+        <p class="text-muted">Showing available items from our selection matching your query.</p>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for prod in product %}
+        <div class="col" data-aos="fade-up" data-aos-delay="{{ forloop.counter }}00">
+            <div class="card card-product h-100 shadow-sm">
+                <a href="{% url 'product-detail' prod.id %}" class="text-decoration-none">
+                    <div class="product-img-wrapper">
+                        <img src="{{prod.product_image.url}}" alt="{{prod.title}}">
+                        {% if prod.discounted_price < prod.selling_price %} <span class="badge-classic">Curated</span>
+                            {% endif %}
+                    </div>
+                    <div class="product-info">
+                        <h5 class="product-title">{{prod.title}}</h5>
+                        <div class="product-price">
+                            ₹{{prod.discounted_price}}
+                            {% if prod.discounted_price < prod.selling_price %} <span
+                                class="text-muted text-decoration-line-through small ms-2">
+                                ₹{{prod.selling_price}}</span>
+                                {% endif %}
+                        </div>
+                        <div class="mt-4">
+                            <button class="btn btn-classic w-100">Examine Details</button>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5" data-aos="zoom-in">
+            <i class="bi bi-search display-1 text-muted opacity-25 mb-4 d-block"></i>
+            <h3 class="fw-bold">No results matching your query.</h3>
+            <p class="text-muted mb-4">Perhaps refine your search or explore our core collections.</p>
+            <a href="/" class="btn btn-classic px-5">Back to Archive</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock main %}

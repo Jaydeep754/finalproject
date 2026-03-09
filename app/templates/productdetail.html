@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Acquire {{product.title}} | Premium Selection{% endblock title %}
+
+{% block main %}
+<div class="container pt-2 pb-5 mb-5">
+    <div class="row g-5 align-items-start">
+        <!-- Product Image -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-lg p-5 bg-white h-100 d-flex align-items-center justify-content-center">
+                <img src="{{product.product_image.url}}" class="img-fluid"
+                    style="max-height: 550px; object-fit: contain;" alt="{{product.title}}" />
+                {% if product.discounted_price < product.selling_price %} <span class="badge-classic">Purest
+                    Selection</span>
+                    {% endif %}
+            </div>
+        </div>
+
+        <!-- Product Content -->
+        <div class="col-lg-6" data-aos="fade-left">
+            <nav aria-label="breadcrumb" class="mb-5">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"
+                            class="text-decoration-none text-muted small fw-bold text-uppercase letter-spacing-1">Archive</a>
+                    </li>
+                    <li class="breadcrumb-item"><a href="{% url 'category' product.category %}"
+                            class="text-decoration-none text-muted small fw-bold text-uppercase letter-spacing-1">{{product.get_category_display}}</a>
+                    </li>
+                    <li class="breadcrumb-item active small fw-bold text-uppercase letter-spacing-1"
+                        aria-current="page">{{product.title}}</li>
+                </ol>
+            </nav>
+
+            <h1 class="display-3 fw-bold mb-2" style="font-family: 'Outfit'; letter-spacing: -1px;">{{product.title}}
+            </h1>
+
+            <div class="d-flex align-items-center gap-2 mb-4">
+                <div class="text-warning small d-flex gap-1">
+                    {% for i in "12345" %}
+                    {% if average_rating >= forloop.counter %}
+                    <i class="bi bi-star-fill"></i>
+                    {% elif average_rating >= forloop.counter|add:"-0.5" %}
+                    <i class="bi bi-star-half"></i>
+                    {% else %}
+                    <i class="bi bi-star"></i>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="fw-bold text-dark me-1">{{ average_rating|floatformat:1 }}</span>
+                <span class="text-muted small">({{ reviews.count }} Reviews)</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-4 mb-5">
+                <h2 class="display-5 fw-bold mb-0" style="color: var(--primary);" id="price-display">
+                    ₹{{product.discounted_price}}
+                </h2>
+                {% if product.discounted_price < product.selling_price %} <span
+                    class="fs-4 text-muted text-decoration-line-through" id="real-price-display">
+                    ₹{{product.selling_price}}</span>
+                    {% endif %}
+            </div>
+
+            <div class="mb-5">
+                <h5 class="fw-bold text-uppercase letter-spacing-1 mb-3"
+                    style="color: var(--primary); font-size: 0.9rem;">Composition & Essence</h5>
+                <p class="text-muted fs-5">
+                    {{product.description}}
+                </p>
+                <p class="text-muted small">
+                    {{product.composition}}
+                </p>
+
+                <div class="row g-3 mt-4">
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-light border border-light">
+                            <span class="text-muted small text-uppercase letter-spacing-1 d-block mb-1">Availability</span>
+                            <span class="fw-bold fs-5">
+                                {% if request.user.is_superuser or request.user.is_staff %}
+                                    {{product.quantity}} Units
+                                {% else %}
+                                    {% if product.quantity > 0 %}
+                                        <span class="text-success">In Stock</span>
+                                    {% else %}
+                                        <span class="text-danger">Out of Stock</span>
+                                    {% endif %}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-light border border-light">
+                            <span class="text-muted small text-uppercase letter-spacing-1 d-block mb-1">Best
+                                Before</span>
+                            <span class="fw-bold fs-5 text-danger">{{product.expiry_date|date:"d M Y"}}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <label
+                        class="form-label small fw-bold text-uppercase letter-spacing-1 text-muted mb-3 d-block">Select
+                        Acquisition Size</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for s in sizes %}
+                        <div class="size-option">
+                            <input type="radio" class="btn-check" name="size" id="size_{{forloop.counter}}"
+                                value="{{s}}" {% if forloop.first %}checked{% endif %} form="add-to-cart-form">
+                            <label
+                                class="btn btn-outline-primary rounded-pill px-4 py-2 fw-bold transition-all border-2"
+                                for="size_{{forloop.counter}}">
+                                {{s}}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <form action="{% url 'add_to_cart' %}" id="add-to-cart-form" class="row g-4 align-items-end">
+                <input type="hidden" name="prod_id" value="{{product.id}}">
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-bold text-uppercase letter-spacing-1 text-muted">Quantity</label>
+                    <div class="input-group quantity-box border-2">
+                        <button class="btn border-0" type="button" onclick="changeQty(-1)"
+                            style="color: var(--primary);"><i class="bi bi-dash"></i></button>
+                        <input type="number" name="quantity" id="qty-input"
+                            class="form-control border-0 text-center fw-bold shadow-none" value="1" min="1" max="10"
+                            style="background: transparent;">
+                        <button class="btn border-0" type="button" onclick="changeQty(1)"
+                            style="color: var(--primary);"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-8">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <button type="submit"
+                                class="btn btn-classic w-100 py-3 rounded-pill shadow-lg d-flex align-items-center justify-content-center gap-2"
+                                {% if product.quantity == 0 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                <i class="bi bi-cart-plus"></i>
+                                Save to Cart
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="submit" name="buy_now" value="true"
+                                class="btn w-100 py-3 fw-bold border-2 text-uppercase rounded-pill"
+                                style="letter-spacing: 1px; border-color: var(--primary); color: var(--primary);"
+                                {% if product.quantity == 0 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <script>
+                const basePrice = Number("{{ product.discounted_price }}");
+                const realPriceBase = Number("{{ product.selling_price }}");
+                const priceDisplay = document.getElementById('price-display');
+                const realPriceDisplay = document.getElementById('real-price-display');
+                const qtyInput = document.getElementById('qty-input');
+                const sizeRadios = document.querySelectorAll('input[name="size"]');
+
+                function updatePrice() {
+                    let multiplier = 1.0;
+                    let selectedSize = "";
+
+                    sizeRadios.forEach(radio => {
+                        if (radio.checked) {
+                            selectedSize = radio.value;
+                        }
+                    });
+
+                    if (selectedSize.includes('500gm') || selectedSize.includes('500ml')) multiplier = 0.5;
+                    else if (selectedSize.includes('2kg') || selectedSize.includes('2L')) multiplier = 2.0;
+
+                    // Update Discounted Price
+                    const total = basePrice * multiplier;
+                    priceDisplay.innerText = '₹' + total.toFixed(2);
+
+                    // Update Real Price (if it exists)
+                    if (realPriceDisplay) {
+                        const realTotal = realPriceBase * multiplier;
+                        realPriceDisplay.innerText = '₹' + realTotal.toFixed(2);
+                    }
+                }
+
+                function changeQty(delta) {
+                    let val = parseInt(qtyInput.value) + delta;
+                    if (val < 1) val = 1;
+                    if (val > 10) val = 10;
+                    qtyInput.value = val;
+                    updatePrice();
+                }
+
+                qtyInput.addEventListener('input', function () {
+                    let val = parseInt(qtyInput.value);
+                    if (val < 1) qtyInput.value = 1;
+                    if (val > 10) qtyInput.value = 10;
+                    updatePrice();
+                });
+                sizeRadios.forEach(radio => {
+                    radio.addEventListener('change', updatePrice);
+                });
+
+                // Initial calculation
+                updatePrice();
+            </script>
+
+
+            <div id="review-section" class="mt-5 pt-5 border-top border-2" data-aos="fade-up">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0" style="font-family: 'Outfit';">Patron Feedback</h4>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="text-warning">
+                            <i class="bi bi-star-fill"></i>
+                            <span class="ms-1 fw-bold text-dark">{{ average_rating|floatformat:1 }}</span>
+                        </div>
+                        <span class="text-muted small">({{ reviews.count }} Reviews)</span>
+                    </div>
+                </div>
+
+                <!-- Review Form -->
+                {% if request.user.is_authenticated %}
+                {% if can_review %}
+                <div class="card border-0 shadow-sm rounded-4 mb-5" style="background: var(--accent);">
+                    <div class="card-body p-4">
+                        <i class="bi bi-patch-check-fill text-primary me-2"></i>
+                        <h6 class="fw-bold mb-3 d-inline-block">Share Your Experience</h6>
+                        <form action="{% url 'submit-review' product.id %}" method="post">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <label
+                                        class="form-label small text-muted text-uppercase fw-bold letter-spacing-1 d-block mb-3">Your
+                                        Rating</label>
+                                    <div class="star-rating d-flex flex-row-reverse justify-content-end gap-2 px-1">
+                                        <input type="radio" id="star5" name="rating" value="5" class="d-none"
+                                            required />
+                                        <label for="star5" class="bi bi-star fs-3"></label>
+                                        <input type="radio" id="star4" name="rating" value="4" class="d-none" />
+                                        <label for="star4" class="bi bi-star fs-3"></label>
+                                        <input type="radio" id="star3" name="rating" value="3" class="d-none" />
+                                        <label for="star3" class="bi bi-star fs-3"></label>
+                                        <input type="radio" id="star2" name="rating" value="2" class="d-none" />
+                                        <label for="star2" class="bi bi-star fs-3"></label>
+                                        <input type="radio" id="star1" name="rating" value="1" class="d-none" />
+                                        <label for="star1" class="bi bi-star fs-3"></label>
+                                    </div>
+                                    <style>
+                                        .star-rating label {
+                                            cursor: pointer;
+                                            color: #cbd5e1;
+                                            transition: all 0.2s ease;
+                                        }
+
+                                        .star-rating label:hover,
+                                        .star-rating label:hover~label,
+                                        .star-rating input:checked~label {
+                                            color: #f59e0b;
+                                        }
+
+                                        /* Swap to fill star on hover/checked */
+                                        .star-rating label:hover:before,
+                                        .star-rating label:hover~label:before,
+                                        .star-rating input:checked~label:before {
+                                            content: "\F586" !important;
+                                        }
+
+                                        .star-rating label:active {
+                                            transform: scale(0.9);
+                                        }
+                                    </style>
+                                </div>
+                                <div class="col-12">
+                                    <label
+                                        class="form-label small text-muted text-uppercase fw-bold letter-spacing-1">Your
+                                        Thoughts</label>
+                                    {{ review_form.comment }}
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit"
+                                        class="btn btn-primary rounded-pill px-4 text-white fw-bold">Submit
+                                        Review</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info border-0 shadow-sm rounded-4 p-4 text-center mb-5">
+                    <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                    <p class="mb-0">Only patrons who have <strong>received this product</strong> can contribute to our
+                        feedback archive. This ensures all insights are authentic.</p>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-light border rounded-4 p-4 text-center mb-5">
+                    <p class="mb-0 text-muted">Please <a href="{% url 'login' %}" class="fw-bold text-primary">login</a>
+                        to share your thoughts on this selection.</p>
+                </div>
+                {% endif %}
+
+                <!-- Review List -->
+                <div class="review-list mt-4">
+                    {% for review in reviews %}
+                    <div class="review-item mb-4 pb-4 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                                    style="width: 40px; height: 40px; font-size: 0.9rem;">
+                                    {{ review.user.username|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-0">{{ review.user.username|capfirst }}</h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted small">{{ review.created_at|date:"d M, Y" }}</span>
+                                        <span class="badge bg-success-subtle text-success border-0 small"
+                                            style="font-size: 0.65rem;">
+                                            <i class="bi bi-patch-check-fill me-1"></i>Verified Purchase
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-warning small d-flex gap-1">
+                                {% for i in "12345" %}
+                                {% if review.rating >= forloop.counter %}
+                                <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                <i class="bi bi-star text-muted opacity-25"></i>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p class="text-muted mb-0 ps-5 ms-3">
+                            {{ review.comment }}
+                        </p>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-chat-dots fs-1 text-muted opacity-25 mb-3 d-block"></i>
+                        <p class="text-muted">No reviews yet for this selection. Be the first to share your experience!
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-5 pt-5 border-top border-2">
+
+                <div class="row g-4 text-center">
+                    <div class="col-4">
+                        <i class="bi bi-stars fs-1 mb-3 d-block" style="color: var(--secondary);"></i>
+                        <span class="small fw-bold text-uppercase letter-spacing-1 d-block">Purity Guaranteed</span>
+                    </div>
+                    <div class="col-4">
+                        <i class="bi bi-thermometer-snow fs-1 mb-3 d-block" style="color: var(--secondary);"></i>
+                        <span class="small fw-bold text-uppercase letter-spacing-1 d-block">Cold Chain Only</span>
+                    </div>
+                    <div class="col-4">
+                        <i class="bi bi-house-door fs-1 mb-3 d-block" style="color: var(--secondary);"></i>
+                        <span class="small fw-bold text-uppercase letter-spacing-1 d-block">Farm To Home</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock main %}

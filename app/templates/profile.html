@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Patron Profile | Milk & More{% endblock title %}
+
+{% block main %}
+<div class="container py-5 my-5">
+    <div class="row g-5">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-4" data-aos="fade-right">
+            <div class="filter-card shadow-lg p-0 overflow-hidden">
+                <div class="filter-header px-4 pt-4">
+                    <span style="font-size: 1.2rem;">Account Hub</span>
+                </div>
+                <div class="list-group list-group-flush rounded-0 bg-transparent">
+                    <a href="{% url 'profile'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3 {% if request.resolver_match.url_name == 'profile' %}active-link{% endif %}">
+                        <i class="bi bi-person-circle fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Profile
+                            Overview</span>
+                    </a>
+                    <a href="{% url 'address'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3 {% if request.resolver_match.url_name == 'address' %}active-link{% endif %}">
+                        <i class="bi bi-geo-alt fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Saved
+                            Addresses</span>
+                    </a>
+                    <a href="{% url 'orders'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3">
+                        <i class="bi bi-bag-check fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Order
+                            History</span>
+                    </a>
+                    <a href="{% url 'logout'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3 text-danger">
+                        <i class="bi bi-box-arrow-right fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Profile Grid -->
+        <div class="col-lg-8" data-aos="fade-left">
+            <div class="filter-card shadow-lg">
+                <div class="filter-header mb-5">
+                    <span>Patron Information</span>
+                </div>
+
+                <form action="" method="post" novalidate>
+                    {% csrf_token %}
+                    <div class="row g-4">
+                        {% for fm in form %}
+                        <div class="col-md-6 mb-3">
+                            <label
+                                class="form-label text-muted small text-uppercase letter-spacing-2 mb-2">{{fm.label}}</label>
+                            {{fm}}
+                            {% if fm.errors %}
+                            <div class="text-danger small mt-1">{{fm.errors|striptags}}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-5 pt-3">
+                        <button type="submit" class="btn btn-classic px-5 py-3">
+                            Update Archive
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .active-link {
+        background: var(--accent) !important;
+        border-left: 4px solid var(--primary) !important;
+        color: var(--primary) !important;
+    }
+</style>
+{% endblock main %}

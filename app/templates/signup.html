@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Entry | Milk & More{% endblock title %}
+
+{% block main %}
+<div class="auth-wrapper" data-aos="fade-in">
+  <div class="auth-card" data-aos="zoom-in" data-aos-delay="200">
+    <div class="text-center mb-5">
+      <div class="mb-4 d-inline-block p-4 rounded-circle" style="background: var(--accent) !important;">
+        <i class="bi bi-person-plus-fill fs-1" style="color: var(--primary);"></i>
+      </div>
+      <h2 class="mb-2" style="font-family: 'Outfit'; letter-spacing: -1px;">Join The Community</h2>
+      <p class="text-muted small text-uppercase letter-spacing-1">Establish your dairy identity</p>
+    </div>
+
+    <form action="" method="post" novalidate>
+      {% csrf_token %}
+
+      {% for fm in form %}
+      <div class="mb-4">
+        <label for="{{fm.id_for_label}}"
+          class="form-label small fw-bold text-uppercase letter-spacing-1 text-muted mb-2 ps-2">
+          {{fm.label}}
+        </label>
+        {{fm}}
+        {% if fm.errors %}
+        <div class="invalid-feedback d-block small mt-1 ps-3">
+          {{fm.errors|striptags}}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div class="d-grid mb-4">
+        <button type="submit" class="btn btn-classic py-3">
+          Forge Account
+        </button>
+      </div>
+
+      <div class="text-center">
+        <p class="text-muted small">Already a member?
+          <a href="{% url 'login' %}" class="text-decoration-none fw-bold" style="color: var(--primary);">Sign In</a>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock main %}

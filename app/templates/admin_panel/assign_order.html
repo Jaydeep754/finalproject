@@ -1,0 +1,61 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Assign Delivery - Milk & More Admin{% endblock %}
+{% block page_title %}Order Assignment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="glass-card animate-fade-in">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="stat-icon icon-gold">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-0">Assign Order #{{ order.id }}</h4>
+                    <p class="text-muted mb-0">Select staff for delivery</p>
+                </div>
+            </div>
+
+            <div class="p-3 bg-light rounded-4 mb-4 border border-white">
+                <div class="row small g-2">
+                    <div class="col-6 text-muted">Customer:</div>
+                    <div class="col-6 fw-bold">{{ order.customer.name }}</div>
+                    <div class="col-6 text-muted">Phone:</div>
+                    <div class="col-6 fw-bold">{{ order.customer.mobile }}</div>
+                    <div class="col-6 text-muted">Address:</div>
+                    <div class="col-6 fw-bold">{{ order.customer.city }}</div>
+                    <div class="col-6 text-muted">Total:</div>
+                    <div class="col-6 fw-bold text-primary">₹{{ order.total_cost }}</div>
+                </div>
+            </div>
+
+            <form action="" method="post">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Available Delivery Personnel</label>
+                    <select name="delivery_person" class="form-select form-select-lg border-2"
+                        style="border-radius: 12px;" required>
+                        <option value="" selected disabled>Choose staff member...</option>
+                        {% for dp in delivery_persons %}
+                        <option value="{{ dp.id }}" {% if order.delivery_person == dp %}selected{% endif %}>
+                            {{ dp.name }} ({{ dp.mobile }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-premium py-3">
+                        <i class="fa-solid fa-check-circle me-2"></i> Assign This Order
+                    </button>
+                    <a href="{% url 'admin-orders' %}" class="btn btn-link text-muted text-decoration-none">
+                        Go back to orders
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

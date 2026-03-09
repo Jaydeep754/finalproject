@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #5a5a5a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            color: #7f8c8d;
+        }
+        .details-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .details-table td {
+            vertical-align: top;
+            padding: 5px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Milk & More</h1>
+        <p>Premium Dairy Selections</p>
+    </div>
+
+    <table class="details-table">
+        <tr>
+            <td width="50%">
+                <strong>Invoice To:</strong><br>
+                {{ customer.name }}<br>
+                {{ customer.locality }}, {{ customer.city }}<br>
+                {{ customer.state }} - {{ customer.zipcode }}<br>
+                Mobile: {{ customer.mobile }}
+            </td>
+            <td width="50%" style="text-align: right;">
+                <strong>Invoice Detail:</strong><br>
+                Payment ID: {{ payment.id }}<br>
+                Payment Mode: {% if payment.razorpay_payment_status == 'Cash On Delivery' %}Cash On Delivery{% else %}Online ({{ payment.razorpay_payment_status }}){% endif %}<br>
+                Date: {{ orders.0.ordered_date|date:"F j, Y" }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.product.title }}</td>
+                <td>{{ order.size }}</td>
+                <td>{{ order.quantity }}</td>
+                <td>Rs. {{ order.price }}</td>
+                <td>Rs. {{ order.total_cost }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="4" style="text-align: right;">Total Valid Amount</td>
+                <td>Rs. {{ payment.amount }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Thank you for choosing Milk & More!</p>
+        <p>For any queries, please contact support.</p>
+    </div>
+
+</body>
+</html>

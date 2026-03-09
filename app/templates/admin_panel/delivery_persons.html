@@ -1,0 +1,64 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Manage Delivery Staff - Milk & More Admin{% endblock %}
+{% block page_title %}Delivery Staff Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">Delivery Personnel</h3>
+    <a href="{% url 'admin-add-delivery-person' %}" class="btn btn-premium">
+        <i class="fa-solid fa-user-plus me-2"></i> Add New Staff
+    </a>
+</div>
+
+<div class='glass-card'>
+    <div class='table-responsive'>
+        <table class='table custom-table'>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Mobile</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dp in delivery_persons %}
+                <tr>
+                    <td>
+                        <div class='fw-bold text-dark'>{{ dp.name }}</div>
+                    </td>
+                    <td>{{ dp.user.username }}</td>
+                    <td>{{ dp.mobile }}</td>
+                    <td>
+                        <span
+                            class="status-badge {% if dp.is_active %}status-delivered{% else %}status-pending{% endif %}">
+                            {% if dp.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'admin-update-delivery-person' dp.id %}"
+                                class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
+                                <i class="fa-solid fa-edit"></i>
+                            </a>
+                            <a href="{% url 'admin-delete-delivery-person' dp.id %}"
+                                class="btn btn-sm btn-outline-danger" style="border-radius: 8px;"
+                                onclick="return confirm('Are you sure you want to delete this delivery person?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan='5' class='text-center py-4 text-muted'>No delivery personnel found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

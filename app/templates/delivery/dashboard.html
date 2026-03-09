@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Delivery Dashboard{% endblock title %}
+{% block main %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-sm-3 border-end">
+            <ul class="list-unstyled">
+                <li class="d-grid"><a href="{% url 'delivery-dashboard' %}" class="btn btn-primary mb-3">Dashboard</a>
+                </li>
+                <li class="d-grid"><a href="{% url 'delivery-orders' %}" class="btn mb-3">Assigned Orders</a></li>
+                <li class="d-grid"><a href="{% url 'delivery-profile' %}" class="btn mb-3">Profile</a></li>
+            </ul>
+        </div>
+        <div class="col-sm-9 ps-5">
+            <h2 class="mb-4">Welcome, {{request.user.deliveryperson.name}}</h2>
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
+                        <h1 class="text-primary">{{total_assigned}}</h1>
+                        <p class="mb-0 text-muted">Total Assigned</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
+                        <h1 class="text-warning">{{pending_deliveries}}</h1>
+                        <p class="mb-0 text-muted">Pending</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
+                        <h1 class="text-success">{{completed_deliveries}}</h1>
+                        <p class="mb-0 text-muted">Completed</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
+                        <h1 class="text-danger">{{failed_deliveries}}</h1>
+                        <p class="mb-0 text-muted">Failed</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5 card p-4 shadow-sm border-0 bg-white">
+                <h4 class="mb-3">COD Collection Summary</h4>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1">Total COD Collected</p>
+                        <h2 class="fw-bold">₹{{total_cod_collected}}</h2>
+                    </div>
+                    <i class="bi bi-cash-coin display-4 text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock main %}

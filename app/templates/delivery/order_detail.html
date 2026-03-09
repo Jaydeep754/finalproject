@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Order Details{% endblock title %}
+{% block main %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-sm-3 border-end">
+            <ul class="list-unstyled">
+                <li class="d-grid"><a href="{% url 'delivery-dashboard' %}" class="btn mb-3">Dashboard</a></li>
+                <li class="d-grid"><a href="{% url 'delivery-orders' %}" class="btn btn-primary mb-3">Assigned
+                        Orders</a></li>
+                <li class="d-grid"><a href="{% url 'delivery-profile' %}" class="btn mb-3">Profile</a></li>
+            </ul>
+        </div>
+        <div class="col-sm-9 ps-5">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'delivery-orders' %}">Orders</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">#{{order.id}}</li>
+                </ol>
+            </nav>
+            <h2 class="mb-4">Order Details #{{order.id}}</h2>
+
+            <div class="row g-4">
+                <div class="col-md-7">
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3 border-bottom pb-2">Customer Information</h5>
+                            <p><strong>Name:</strong> {{order.customer.name}}</p>
+                            <p><strong>Phone:</strong> <a href="tel:{{order.customer.mobile}}"
+                                    class="text-decoration-none"><i
+                                        class="bi bi-telephone-fill me-2"></i>{{order.customer.mobile}}</a></p>
+                            <p><strong>Address:</strong><br>
+                                {{order.customer.locality}}<br>
+                                {{order.customer.city}}, {{order.customer.state}} - {{order.customer.zipcode}}
+                            </p>
+                            <div class="d-grid mt-3">
+                                <a href="https://www.google.com/maps/search/?api=1&query={{order.customer.locality}} {{order.customer.city}}"
+                                    target="_blank" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-map me-2"></i>Open in Maps
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3 border-bottom pb-2">Product Details</h5>
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="{{order.product.product_image.url}}" alt="" width="80" class="rounded">
+                                <div>
+                                    <h6 class="fw-bold mb-0">{{order.product.title}}</h6>
+                                    <small class="text-muted">{{order.size}} | Qty: {{order.quantity}}</small>
+                                    <p class="mb-0 fw-bold mt-1">₹{{order.total_cost}}</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <span>Payment Method:</span>
+                                <span class="fw-bold">{{order.payment.razorpay_payment_status}}</span>
+                            </div>
+                            {% if order.payment.razorpay_payment_status == 'Cash On Delivery' %}
+                            <div class="alert alert-warning mt-3 mb-0 py-2 d-flex align-items-center gap-2">
+                                <i class="bi bi-cash"></i>
+                                <span><strong>Collect: ₹{{order.total_cost}}</strong></span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3 border-bottom pb-2">Update Delivery Status</h5>
+                            <form action="{% url 'delivery-update-status' order.id %}" method="post">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label">Current Status</label>
+                                    {{form.status}}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Delivery Notes</label>
+                                    {{form.delivery_notes}}
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock main %}

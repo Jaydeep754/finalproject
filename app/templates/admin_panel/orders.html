@@ -1,0 +1,113 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Manage Orders - Milk & More Admin{% endblock %}
+{% block page_title %}Order Management (Final Fix){% endblock %}
+
+{% block content %}
+<div class='glass-card'>
+    <div class='table-responsive'>
+        <table class='table custom-table'>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Update Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td class='fw-bold'>#{{ order.id }}</td>
+                    <td>
+                        <div class='fw-bold text-dark'>{{ order.customer.name }}</div>
+                        <div class='small text-muted'>{{ order.customer.mobile }}</div>
+                    </td>
+                    <td>
+                        <div class='fw-bold'>{{ order.product.title }}</div>
+                        <div class='small text-muted'>{{ order.size }}</div>
+                    </td>
+                    <td>{{ order.quantity }}</td>
+                    <td class='fw-bold'>₹{{ order.total_cost }}</td>
+                    <td>{{ order.ordered_date|date:'d M Y, H:i' }}</td>
+                    <td>
+                        {% if order.payment and order.payment.razorpay_payment_status == 'Cash On Delivery' %}
+                        <span class="badge bg-warning-subtle text-warning border-0 fw-bold small">COD</span>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success border-0 fw-bold small">ONLINE</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge {% if order.status == 'Pending' %}status-pending{% elif order.status == 'Delivered' %}status-delivered{% elif order.status == 'Cancel' %}bg-secondary text-white{% else %}status-shipped{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <form action="{% url 'admin-update-order' order.id %}" method="POST" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <select name="status" class="form-select form-select-sm border-2" style="width: 145px; border-radius: 8px;">
+                                <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Accepted" {% if order.status == 'Accepted' %}selected{% endif %}>Accepted</option>
+                                <option value="Packed" {% if order.status == 'Packed' %}selected{% endif %}>Packed</option>
+                                <option value="Assigned" {% if order.status == 'Assigned' %}selected{% endif %}>Assigned</option>
+                                <option value="On the way" {% if order.status == 'On the way' %}selected{% endif %}>On the way</option>
+                                <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="Failed Delivery" {% if order.status == 'Failed Delivery' %}selected{% endif %}>Failed Delivery</option>
+                                <option value="Cancel" {% if order.status == 'Cancel' %}selected{% endif %}>Cancel</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-premium">Update</button>
+                        </form>
+                        <div class="mt-2 d-flex gap-1 flex-wrap">
+                            {% if order.status == 'Pending' %}
+                            <form action="{% url 'admin-update-order' order.id %}" method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="Accepted">
+                                <button type="submit" class="btn btn-xs btn-success py-0 px-2" style="font-size: 0.7rem;">Confirm</button>
+                            </form>
+                            {% endif %}
+                            
+                            <a href="{% url 'admin-assign-order' order.id %}" class="btn btn-xs btn-warning py-0 px-2" style="font-size: 0.7rem; color: black; border-radius: 4px;">
+                               {% if order.delivery_person %}Re-assign{% else %}Assign{% endif %}
+                            </a>
+
+                            {% if order.status != 'Delivered' and order.status != 'Cancel' %}
+                            <form action="{% url 'admin-update-order' order.id %}" method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="Delivered">
+                                <button type="submit" class="btn btn-xs btn-primary py-0 px-2" style="font-size: 0.7rem;">Deliver</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% if order.delivery_person %}
+                        <div class="small text-muted mt-2">
+                            <i class="fa-solid fa-truck text-success me-1"></i> <span class="fw-bold">{{order.delivery_person.name}}</span>
+                        </div>
+                        {% endif %}
+                        <div class="mt-2 text-start">
+                            <a href="{% url 'download-invoice' order.payment.id %}" target="_blank"
+                               class="btn btn-outline-secondary btn-sm shadow-sm w-100"
+                               style="font-size: 0.8rem; border-radius: 8px;">
+                                <i class="fa-solid fa-file-pdf me-1"></i> Download Invoice
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan='9' class='text-center py-5 text-muted'>
+                        <i class="fa-solid fa-box-open d-block fs-1 mb-3 opacity-25"></i>
+                        No orders found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

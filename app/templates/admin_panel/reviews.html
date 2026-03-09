@@ -1,0 +1,74 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Manage Reviews - Milk & More Admin{% endblock %}
+{% block page_title %}Customer Reviews Management{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0">Patron Feedback Archive</h5>
+        <span class="badge bg-gold text-dark border-0 rounded-pill px-3">{{ reviews.count }} Total Reviews</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table custom-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Customer</th>
+                    <th>Rating</th>
+                    <th>Comment</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for review in reviews %}
+                <tr>
+                    <td class="fw-bold">{{ review.product.title }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-avatar" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                {{ review.user.username|slice:":1"|upper }}
+                            </div>
+                            <span>{{ review.user.username }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill bg-gold text-dark border-0 px-3">
+                            <i class="fa-solid fa-star me-1"></i> {{ review.rating }}
+                        </span>
+                    </td>
+                    <td>
+                        <p class="mb-0 small text-muted text-truncate" style="max-width: 300px;">
+                            {{ review.comment }}
+                        </p>
+                    </td>
+                    <td>{{ review.created_at|date:"d M Y" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'admin-delete-review' review.id %}"
+                            class="btn btn-sm btn-outline-danger border-2 fw-bold"
+                            onclick="return confirm('Archive this review permanently?')">
+                            <i class="fa-solid fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <p class="text-muted mb-0">No reviews have been authenticated in the archive yet.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .bg-gold {
+        background-color: var(--gold) !important;
+    }
+</style>
+{% endblock %}

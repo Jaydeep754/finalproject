@@ -1,0 +1,52 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Payments - Milk & More Admin{% endblock %}
+{% block page_title %}Payment Transactions{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0">Total Transactions ({{ payments.count }})</h5>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table custom-table">
+            <thead>
+                <tr>
+                    <th>Payment ID</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Razorpay Order ID</th>
+                    <th>Status</th>
+                    <th>Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td class="small fw-bold">{{ payment.razorpay_payment_id|default:"N/A" }}</td>
+                    <td>{{ payment.user.username }}</td>
+                    <td class="fw-bold">₹{{ payment.amount|floatformat:2 }}</td>
+                    <td class="small">{{ payment.razorpay_order_id }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark">{{ payment.razorpay_payment_status }}</span>
+                    </td>
+                    <td>
+                        {% if payment.paid %}
+                        <span class="status-badge status-delivered">YES</span>
+                        {% else %}
+                        <span class="status-badge status-pending">NO</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No payments found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load static %}
+{% block main %}
+<div class="category-hero py-5 mb-5"
+    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);">
+    <div class="container py-4 text-center">
+        <h1 class="display-4 fw-bold text-white mb-3" data-aos="zoom-in"
+            style="font-family: 'Outfit', sans-serif; letter-spacing: -1px;">
+            Order Archive
+        </h1>
+        <p class="text-white-50 lead mx-auto" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
+            Track the journey of your premium dairy selections from our farm to your foyer.
+        </p>
+    </div>
+</div>
+
+<div class="container pb-5 mb-5">
+    <div class="row">
+        <div class="col-12">
+            {% if order_placed %}
+            <div class="row g-4">
+                {% for op in order_placed %}
+                <div class="col-12" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden text-dark">
+                        <div class="card-body p-0">
+                            <div class="row g-0">
+                                <!-- Product Image -->
+                                <div class="col-md-2 bg-light d-flex align-items-center justify-content-center p-4">
+                                    <div class="product-img-container" style="width: 120px; height: 120px;">
+                                        <a href="{% url 'product-detail' op.product.id %}">
+                                            <img src="{{op.product.product_image.url}}"
+                                                class="img-fluid h-100 w-100 object-fit-contain"
+                                                alt="{{op.product.title}}">
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Order Details -->
+                                <div class="col-md-5 p-4 d-flex flex-column justify-content-center">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge text-white rounded-pill px-3 py-2 small fw-bold me-2"
+                                            style="background-color: var(--primary);">#ORD-{{op.id}}</span>
+                                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>
+                                            {{op.ordered_date|date:"d M, Y"}}</span>
+                                    </div>
+                                    <a href="{% url 'product-detail' op.product.id %}"
+                                        class="text-decoration-none text-dark">
+                                        <h5 class="fw-bold mb-1">{{op.product.title}}
+                                            <span
+                                                class="badge bg-light text-primary border border-primary ms-2 shadow-sm"
+                                                style="font-size: 0.7rem;">{{op.size}}</span>
+                                        </h5>
+                                    </a>
+                                    <div class="d-flex gap-4 mt-2">
+                                        <div class="small text-muted">Quantity: <span
+                                                class="fw-bold text-dark">{{op.quantity}}</span></div>
+                                        <div class="small text-muted">Price: <span class="fw-bold"
+                                                style="color: var(--primary);">₹{{op.total_cost}}</span></div>
+                                    </div>
+                                </div>
+
+                                <!-- Status Tracker -->
+                                <div
+                                    class="col-md-5 p-4 bg-light bg-opacity-50 d-flex flex-column justify-content-center border-start">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="small fw-bold text-uppercase letter-spacing-1 text-muted">Delivery
+                                            Status</span>
+                                        <span
+                                            class="fw-bold {% if op.status == 'Delivered' %}text-success{% elif op.status == 'Cancel' %}text-danger{% else %}text-primary{% endif %}">{{op.status}}</span>
+                                    </div>
+
+                                    <div class="progress rounded-pill mb-2" style="height: 8px;">
+                                        {% if op.status == 'Pending' %}
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                            role="progressbar" style="width: 15%;"></div>
+                                        {% elif op.status == 'Accepted' %}
+                                        <div class="progress-bar" role="progressbar" style="width: 30%;"></div>
+                                        {% elif op.status == 'Packed' %}
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 50%;"></div>
+                                        {% elif op.status == 'On the way' %}
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 75%;">
+                                        </div>
+                                        {% elif op.status == 'Delivered' %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;">
+                                        </div>
+                                        {% elif op.status == 'Cancel' %}
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;">
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <p class="small text-muted mb-2">
+                                        {% if op.status == 'Pending' %}Awaiting guild confirmation...
+                                        {% elif op.status == 'Accepted' %}Authenticated by our dairy smiths.
+                                        {% elif op.status == 'Packed' %}Sealed for freshness.
+                                        {% elif op.status == 'On the way' %}In transit to your coordinates.
+                                        {% elif op.status == 'Delivered' %}Successfully received.
+                                        {% elif op.status == 'Cancel' %}Order has been terminated.
+                                        {% endif %}
+                                    </p>
+
+                                    <div class="mt-2 text-start d-flex flex-wrap gap-2">
+                                        <a href="{% url 'download-invoice' op.payment.id %}"
+                                           class="btn btn-outline-secondary btn-sm rounded-pill px-4 shadow-sm"
+                                           style="font-size: 0.8rem;">
+                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Invoice
+                                        </a>
+                                        {% if op.status == 'Delivered' %}
+                                        <a href="{% url 'product-detail' op.product.id %}"
+                                            class="btn btn-primary btn-sm rounded-pill px-4 text-white shadow-sm"
+                                            style="font-size: 0.8rem;">
+                                            <i class="bi bi-star-fill me-1"></i> Rate & Review
+                                        </a>
+                                        <a href="{% url 'submit-complaint' op.id %}"
+                                            class="btn btn-outline-danger btn-sm rounded-pill px-4 shadow-sm"
+                                            style="font-size: 0.8rem;">
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i> File Complaint
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5 my-5" data-aos="zoom-in">
+                <div class="mb-4 d-inline-block p-4 rounded-circle bg-light">
+                    <i class="bi bi-box2 fs-1 text-muted opacity-50"></i>
+                </div>
+                <h2 class="fw-bold" style="font-family: 'Outfit'; letter-spacing: -1px;">The Archive is Empty</h2>
+                <p class="text-muted lead mb-5">Your collection awaits its first acquisition.</p>
+                <a href="{% url 'home' %}" class="btn btn-classic px-5 py-3 rounded-pill">Explore Heritage</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-soft-sky-blue {
+        background-color: rgba(164, 188, 228, 0.2);
+    }
+
+    .letter-spacing-1 {
+        letter-spacing: 1px;
+    }
+
+    .object-fit-contain {
+        object-fit: contain;
+    }
+</style>
+{% endblock main %}

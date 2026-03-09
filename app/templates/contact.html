@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Contact{% endblock title %}
+{% block banner-slider %}
+<div class="category-hero py-5 mb-5"
+  style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);">
+  <div class="container py-4 text-center">
+    <h1 class="display-4 fw-bold text-white mb-3" data-aos="zoom-in"
+      style="font-family: 'Outfit'; letter-spacing: -1px;">
+      Get In Touch
+    </h1>
+    <p class="text-white-50 lead mx-auto" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
+      Have questions about our products or process? We're here to help you experience the best of dairy.
+    </p>
+  </div>
+</div>
+{% endblock banner-slider %}
+{% block main %}
+<div class="container py-5">
+  <div class="row g-4 justify-content-center">
+    <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+      <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 border-top border-5"
+        style="border-color: var(--secondary) !important;">
+        <i class="bi bi-geo-alt fs-1 mb-3" style="color: var(--primary);"></i>
+        <h5 class="fw-bold mb-3">Our Location</h5>
+        <p class="text-muted mb-0">Ahmedabad, Gujarat<br>Headquarters, India</p>
+      </div>
+    </div>
+    <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+      <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 border-top border-5"
+        style="border-color: var(--primary) !important;">
+        <i class="bi bi-telephone fs-1 mb-3" style="color: var(--primary);"></i>
+        <h5 class="fw-bold mb-3">Phone Number</h5>
+        <p class="text-muted mb-0">+91 98765-43210<br>Sales & Inquiries</p>
+      </div>
+    </div>
+    <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+      <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 border-top border-5"
+        style="border-color: var(--secondary) !important;">
+        <i class="bi bi-envelope fs-1 mb-3" style="color: var(--primary);"></i>
+        <h5 class="fw-bold mb-3">Email Support</h5>
+        <p class="text-muted mb-0">contact@shrijidairy.com<br>Milk & More Support</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<br><br>
+
+{% endblock main %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}About Us{% endblock title %}
+
+{% block banner-slider %}
+<div class="category-hero py-5 mb-5"
+    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);">
+    <div class="container py-4 text-center">
+        <h1 class="display-4 fw-bold text-white mb-3" data-aos="zoom-in"
+            style="font-family: 'Outfit'; letter-spacing: -1px;">
+            Our Heritage
+        </h1>
+        <p class="text-white-50 lead mx-auto" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
+            A premium subsidiary of Shriji Dairy, carrying forward a legacy of purity from Ahmedabad since 1994.
+        </p>
+    </div>
+</div>
+{% endblock banner-slider %}
+
+{% block main %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="text-center mb-5" data-aos="fade-up">
+                <h2 class="display-5 fw-bold" style="font-family: 'Outfit';">About Us</h2>
+            </div>
+            <p class="fs-4 text-center text-muted mb-5" data-aos="fade-up">
+                Milk & More is a proud subsidiary of <strong>Shriji Dairy</strong>, a pioneer in the dairy industry that
+                has been serving the community in <strong>Ahmedabad since 1994</strong>.
+                For over three decades, we have been dedicated to the pursuit of excellence, combining traditional
+                wisdom with modern technology to deliver nature's finest goodness.
+            </p>
+
+            <div class="text-center mb-5 mt-5" data-aos="fade-up">
+                <h2 class="display-5 fw-bold" style="font-family: 'Outfit';">Our Mission</h2>
+            </div>
+            <p class="fs-4 text-center text-muted" data-aos="fade-up">
+                To embrace the right technology to delight our customers while empowering the farming community
+                through our unique 'relationship farming' model. We anticipate, understand, and respond to our
+                customers' needs by creating high-quality products available through innovative channels.
+            </p>
+        </div>
+    </div>
+</div>
+<br><br>
+{% endblock main %}

@@ -1,0 +1,73 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Products - Milk & More Admin{% endblock %}
+{% block page_title %}Manage Products{% endblock %}
+
+{% block content %}
+<div class="glass-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0">All Products ({{ products.count }})</h5>
+        <a href="{% url 'admin-add-product' %}" class="btn btn-premium">
+            <i class="fa-solid fa-plus me-2"></i> Add New Product
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table custom-table">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Discounted</th>
+                    <th>Stock</th>
+                    <th>Expiry</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>
+                        {% if product.product_image %}
+                        <img src="{{ product.product_image.url }}" alt="{{ product.title }}"
+                            style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                        {% else %}
+                        <div
+                            style="width: 50px; height: 50px; background: #eee; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-image text-muted"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold">{{ product.title }}</td>
+                    <td>{{ product.get_category_display }}</td>
+                    <td>₹{{ product.selling_price }}</td>
+                    <td class="text-success fw-bold">₹{{ product.discounted_price }}</td>
+                    <td>{{ product.quantity }}</td>
+                    <td class="small">{{ product.expiry_date|date:"d M Y" }}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'admin-update-product' product.id %}"
+                                class="btn btn-sm btn-outline-primary border-2">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <a href="{% url 'admin-delete-product' product.id %}"
+                                class="btn btn-sm btn-outline-danger border-2"
+                                onclick="return confirm('Are you sure you want to delete this product?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">No products found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

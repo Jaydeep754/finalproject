@@ -1,0 +1,41 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Delivery Staff - Admin{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Delivery Person{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="glass-card animate-fade-in">
+            <h4 class="fw-bold mb-4">{% if form.instance.pk %}Update{% else %}Create New{% endif %} Staff Member</h4>
+            <form action="" method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    {% for fm in form %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-600">{{ fm.label }}</label>
+                        {{ fm }}
+                        {% if fm.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ fm.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex gap-3">
+                    <button type="submit" class="btn btn-premium px-5">
+                        <i class="fa-solid fa-save me-2"></i> Save Details
+                    </button>
+                    <a href="{% url 'admin-delivery-persons' %}" class="btn btn-outline-secondary px-4"
+                        style="border-radius: var(--radius);">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
