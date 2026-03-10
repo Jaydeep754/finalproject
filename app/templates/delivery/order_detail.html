@@ -16,10 +16,10 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{% url 'delivery-orders' %}">Orders</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">#{{order.id}}</li>
+                    <li class="breadcrumb-item active" aria-current="page">#{{order_id_display}}</li>
                 </ol>
             </nav>
-            <h2 class="mb-4">Order Details #{{order.id}}</h2>
+            <h2 class="mb-4">Order Details #{{order_id_display}}</h2>
 
             <div class="row g-4">
                 <div class="col-md-7">
@@ -46,23 +46,30 @@
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-3 border-bottom pb-2">Product Details</h5>
-                            <div class="d-flex align-items-center gap-3">
-                                <img src="{{order.product.product_image.url}}" alt="" width="80" class="rounded">
+                            {% for item in group_items %}
+                            <div class="d-flex align-items-center gap-3 {% if not forloop.last %}mb-3 border-bottom pb-3{% endif %}">
+                                <img src="{{item.product.product_image.url}}" alt="" width="60" class="rounded shadow-sm">
                                 <div>
-                                    <h6 class="fw-bold mb-0">{{order.product.title}}</h6>
-                                    <small class="text-muted">{{order.size}} | Qty: {{order.quantity}}</small>
-                                    <p class="mb-0 fw-bold mt-1">₹{{order.total_cost}}</p>
+                                    <h6 class="fw-bold mb-0 text-dark">{{item.product.title}}</h6>
+                                    <small class="text-muted">{{item.size}} | Qty: {{item.quantity}}</small>
+                                    <p class="mb-0 fw-bold mt-1 text-primary">₹{{item.total_cost}}</p>
                                 </div>
                             </div>
+                            {% endfor %}
                             <hr>
-                            <div class="d-flex justify-content-between">
-                                <span>Payment Method:</span>
-                                <span class="fw-bold">{{order.payment.razorpay_payment_status}}</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Payment Method:</span>
+                                <span class="badge bg-light text-dark border">{{order.payment.razorpay_payment_status}}</span>
                             </div>
                             {% if order.payment.razorpay_payment_status == 'Cash On Delivery' %}
-                            <div class="alert alert-warning mt-3 mb-0 py-2 d-flex align-items-center gap-2">
-                                <i class="bi bi-cash"></i>
-                                <span><strong>Collect: ₹{{order.total_cost}}</strong></span>
+                            <div class="alert alert-warning mt-3 mb-0 py-3 shadow-sm border-0 d-flex align-items-center gap-3 rounded-3" style="background-color: #fff9e6;">
+                                <div class="bg-warning text-white p-2 rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-cash-stack fs-5"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Total Cash to Collect</small>
+                                    <span class="fw-bold fs-4">₹{{total_group_amount}}</span>
+                                </div>
                             </div>
                             {% endif %}
                         </div>

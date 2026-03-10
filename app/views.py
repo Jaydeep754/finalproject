@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.views import View
-from .models import Product, Cart,Payment,OrderPlaced, Complaint
+from .models import Product, Customer, Cart, Payment, DeliveryPerson, OrderPlaced, ProductReview, Complaint, CATEGORY_CHOICES
 from .forms import *
 import razorpay
 from django.contrib.auth import logout, login, authenticate
@@ -665,9 +665,19 @@ def checkout_cod(request):
 @login_required
 def orders(request):
     cartitem = cart_num(request)
-    # 
-    order_placed = OrderPlaced.objects.filter(user=request.user).order_by('-ordered_date')
-    return render(request,"orders.html",locals())
+    query = request.GET.get('q')
+    queryset = OrderPlaced.objects.filter(user=request.user).select_related('product', 'payment', 'customer').order_by('-ordered_date')
+    
+    if query:
+        queryset = queryset.filter(
+            Q(payment__razorpay_order_id__icontains=query) |
+            Q(product__title__icontains=query) |
+            Q(status__icontains=query) |
+            Q(payment__id__icontains=query.replace('COD', '').replace('cod', ''))
+        ).distinct()
+        
+    order_groups = get_grouped_orders(queryset)
+    return render(request, "orders.html", locals())
 
 def search(request):
     query = request.GET.get('search', '')
@@ -677,26 +687,76 @@ def search(request):
 
 from django.contrib.auth.decorators import user_passes_test
 
+from collections import OrderedDict
+
+def get_grouped_orders(queryset):
+    grouped_orders = OrderedDict()
+    for item in queryset:
+        key = f"P{item.payment.id}" if item.payment else f"I{item.id}"
+        if key not in grouped_orders:
+            if item.payment:
+                if item.payment.razorpay_order_id:
+                    order_id_display = f"{item.payment.razorpay_order_id[-8:].upper()}"
+                else:
+                    order_id_display = f"COD{item.payment.id:05d}"
+            else:
+                order_id_display = f"ORD{item.id:05d}"
+                
+            grouped_orders[key] = {
+                'id': order_id_display,
+                'payment': item.payment,
+                'items': [],
+                'status': item.status,
+                'ordered_date': item.ordered_date,
+                'customer': item.customer,
+                'total_amount': 0,
+                'delivery_person': item.delivery_person,
+                'first_item_id': item.id,
+                'user': item.user
+            }
+        grouped_orders[key]['items'].append(item)
+        grouped_orders[key]['total_amount'] += item.total_cost
+    return list(grouped_orders.values())
+
 def is_admin(user):
     return user.is_superuser or user.is_staff
 
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     total_products = Product.objects.count()
-    total_orders = OrderPlaced.objects.count()
+    
+    # Group all orders to count unique transactions
+    all_orders_queryset = OrderPlaced.objects.all().select_related('payment')
+    all_grouped = get_grouped_orders(all_orders_queryset)
+    total_orders = len(all_grouped)
+    
     total_customers = User.objects.filter(is_superuser=False).count()
     
     # Calculate total revenue from paid payments
     from django.db.models import Sum
     total_revenue = Payment.objects.filter(paid=True).aggregate(Sum('amount'))['amount__sum'] or 0
     
-    pending_orders = OrderPlaced.objects.filter(status='Pending').count()
-    latest_orders = OrderPlaced.objects.all().order_by('-ordered_date')[:5]
+    # Pending orders (unique groups)
+    pending_orders = len([g for g in all_grouped if g['status'] == 'Pending'])
+    
+    # Latest 5 grouped orders
+    latest_orders_qs = OrderPlaced.objects.all().select_related('product', 'payment', 'customer').order_id_display = None # Dummy for locals
+    latest_orders = get_grouped_orders(OrderPlaced.objects.all().order_by('-ordered_date'))[:5]
+    
     return render(request, 'admin_panel/dashboard.html', locals())
 
 @user_passes_test(is_admin)
 def admin_products(request):
+    query = request.GET.get('q')
     products = Product.objects.all().order_by('-id')
+    if query:
+        # Match against human-readable category names
+        matching_cat_codes = [code for code, name in CATEGORY_CHOICES if query.lower() in name.lower()]
+        
+        products = products.filter(
+            Q(title__icontains=query) |
+            Q(category__in=matching_cat_codes)
+        ).distinct()
     return render(request, 'admin_panel/products.html', locals())
 
 @user_passes_test(is_admin)
@@ -733,7 +793,19 @@ def admin_delete_product(request, pk):
 
 @user_passes_test(is_admin)
 def admin_orders(request):
-    orders = OrderPlaced.objects.all().order_by('-ordered_date')
+    query = request.GET.get('q')
+    queryset = OrderPlaced.objects.all().select_related('product', 'payment', 'customer', 'delivery_person').order_by('-ordered_date')
+    
+    if query:
+        queryset = queryset.filter(
+            Q(payment__razorpay_order_id__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(customer__mobile__icontains=query) |
+            Q(status__icontains=query) |
+            Q(payment__id__icontains=query.replace('COD', '').replace('cod', ''))
+        ).distinct()
+        
+    order_groups = get_grouped_orders(queryset)
     return render(request, 'admin_panel/orders.html', locals())
 
 def restore_stock(order):
@@ -761,35 +833,51 @@ def send_cancellation_email(order):
 
 @user_passes_test(is_admin)
 def admin_update_order(request, pk):
-    order = OrderPlaced.objects.get(pk=pk)
+    # This now updates the ENTIRE group of orders associated with the same payment
+    order_instance = OrderPlaced.objects.get(pk=pk)
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        old_status = order.status
         
-        if new_status == 'Cancel' and old_status != 'Cancel':
-            restore_stock(order)
-            send_cancellation_email(order)
+        # Get all orders in this group
+        if order_instance.payment:
+            group_items = OrderPlaced.objects.filter(payment=order_instance.payment)
+        else:
+            group_items = OrderPlaced.objects.filter(id=pk)
+
+        for order in group_items:
+            old_status = order.status
+            if new_status == 'Cancel' and old_status != 'Cancel':
+                restore_stock(order)
+                send_cancellation_email(order)
             
-        order.status = new_status
-        order.save()
-        messages.success(request, f"Order status updated to {new_status}!")
+            order.status = new_status
+            order.save()
+            
+        messages.success(request, f"Order group status updated to {new_status}!")
         return redirect('admin-orders')
     return redirect('admin-orders')
 
 @login_required
 def cancel_order(request, pk):
     try:
-        order = OrderPlaced.objects.get(pk=pk, user=request.user)
+        order_instance = OrderPlaced.objects.get(pk=pk, user=request.user)
     except OrderPlaced.DoesNotExist:
         messages.error(request, "Order not found.")
         return redirect('orders')
         
-    if order.status in ['Pending', 'Accepted']:
-        order.status = 'Cancel'
-        order.save()
-        restore_stock(order)
-        send_cancellation_email(order)
-        messages.success(request, "Order cancelled successfully. Stock has been restored and notification sent.")
+    if order_instance.status in ['Pending', 'Accepted']:
+        if order_instance.payment:
+            group_items = OrderPlaced.objects.filter(payment=order_instance.payment, user=request.user)
+        else:
+            group_items = OrderPlaced.objects.filter(id=pk, user=request.user)
+
+        for obj in group_items:
+            obj.status = 'Cancel'
+            obj.save()
+            restore_stock(obj)
+            send_cancellation_email(obj)
+            
+        messages.success(request, "Order group cancelled successfully. Stock has been restored and notification sent.")
     else:
         messages.error(request, "Order cannot be cancelled at this stage.")
         
@@ -797,7 +885,16 @@ def cancel_order(request, pk):
 
 @user_passes_test(is_admin)
 def admin_customers(request):
+    query = request.GET.get('q')
     customers = Customer.objects.all().order_by('-id')
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query) |
+            Q(mobile__icontains=query) |
+            Q(locality__icontains=query) |
+            Q(city__icontains=query) |
+            Q(user__username__icontains=query)
+        ).distinct()
     return render(request, 'admin_panel/customers.html', locals())
 
 @user_passes_test(is_admin)
@@ -834,7 +931,15 @@ def admin_delete_customer(request, pk):
 
 @user_passes_test(is_admin)
 def admin_payments(request):
+    query = request.GET.get('q')
     payments = Payment.objects.all().order_by('-id')
+    if query:
+        payments = payments.filter(
+            Q(razorpay_order_id__icontains=query) |
+            Q(razorpay_payment_id__icontains=query) |
+            Q(razorpay_payment_status__icontains=query) |
+            Q(user__username__icontains=query)
+        ).distinct()
     return render(request, 'admin_panel/payments.html', locals())
 
 @login_required
@@ -871,7 +976,15 @@ def submit_review(request, product_id):
 
 @user_passes_test(is_admin)
 def admin_reviews(request):
-    reviews = ProductReview.objects.all().order_by('-created_at')
+    query = request.GET.get('q')
+    reviews = ProductReview.objects.all().select_related('user', 'product').order_by('-created_at')
+    if query:
+        reviews = reviews.filter(
+            Q(user__username__icontains=query) |
+            Q(product__title__icontains=query) |
+            Q(comment__icontains=query) |
+            Q(rating__icontains=query)
+        ).distinct()
     return render(request, 'admin_panel/reviews.html', locals())
 
 @user_passes_test(is_admin)
@@ -976,7 +1089,16 @@ def view_complaints(request):
 
 @user_passes_test(is_admin)
 def admin_complaints(request):
-    complaints = Complaint.objects.all().order_by('-created_at')
+    query = request.GET.get('q')
+    complaints = Complaint.objects.all().select_related('user', 'order').order_by('-created_at')
+    if query:
+        complaints = complaints.filter(
+            Q(user__username__icontains=query) |
+            Q(subject__icontains=query) |
+            Q(message__icontains=query) |
+            Q(status__icontains=query) |
+            Q(order__id__icontains=query)
+        ).distinct()
     return render(request, 'admin_panel/complaints.html', locals())
 
 @user_passes_test(is_admin)
@@ -1000,15 +1122,16 @@ def is_delivery_person(user):
 @user_passes_test(is_delivery_person)
 def delivery_dashboard(request):
     dp = request.user.deliveryperson
-    assigned_orders = OrderPlaced.objects.filter(delivery_person=dp)
+    assigned_orders_queryset = OrderPlaced.objects.filter(delivery_person=dp).select_related('payment')
+    assigned_groups = get_grouped_orders(assigned_orders_queryset)
     
-    total_assigned = assigned_orders.count()
-    pending_deliveries = assigned_orders.filter(status__in=['Assigned', 'Out for Delivery']).count()
-    completed_deliveries = assigned_orders.filter(status='Delivered').count()
-    failed_deliveries = assigned_orders.filter(status='Failed Delivery').count()
+    total_assigned = len(assigned_groups)
+    pending_deliveries = len([g for g in assigned_groups if g['status'] in ['Assigned', 'Out for Delivery']])
+    completed_deliveries = len([g for g in assigned_groups if g['status'] == 'Delivered'])
+    failed_deliveries = len([g for g in assigned_groups if g['status'] == 'Failed Delivery'])
     
     # COD Summary
-    cod_orders = assigned_orders.filter(payment__razorpay_payment_status='Cash On Delivery', status='Delivered')
+    cod_orders = assigned_orders_queryset.filter(payment__razorpay_payment_status='Cash On Delivery', status='Delivered')
     total_cod_collected = sum(order.total_cost for order in cod_orders)
     
     return render(request, 'delivery/dashboard.html', locals())
@@ -1017,7 +1140,19 @@ def delivery_dashboard(request):
 @user_passes_test(is_delivery_person)
 def delivery_orders(request):
     dp = request.user.deliveryperson
-    orders = OrderPlaced.objects.filter(delivery_person=dp).order_by('-ordered_date')
+    query = request.GET.get('q')
+    queryset = OrderPlaced.objects.filter(delivery_person=dp).select_related('product', 'payment', 'customer').order_by('-ordered_date')
+    
+    if query:
+        queryset = queryset.filter(
+            Q(payment__razorpay_order_id__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(customer__mobile__icontains=query) |
+            Q(status__icontains=query) |
+            Q(payment__id__icontains=query.replace('COD', '').replace('cod', ''))
+        ).distinct()
+        
+    order_groups = get_grouped_orders(queryset)
     return render(request, 'delivery/orders.html', locals())
 
 @login_required
@@ -1025,6 +1160,20 @@ def delivery_orders(request):
 def delivery_order_detail(request, pk):
     dp = request.user.deliveryperson
     order = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
+    
+    # Get all items in this group
+    if order.payment:
+        group_items = OrderPlaced.objects.filter(payment=order.payment, delivery_person=dp)
+        total_group_amount = sum(item.total_cost for item in group_items)
+        if order.payment.razorpay_order_id:
+            order_id_display = order.payment.razorpay_order_id[-8:].upper()
+        else:
+            order_id_display = f"COD{order.payment.id:05d}"
+    else:
+        group_items = [order]
+        total_group_amount = order.total_cost
+        order_id_display = f"ORD{order.id:05d}"
+        
     form = DeliveryStatusForm(instance=order)
     return render(request, 'delivery/order_detail.html', locals())
 
@@ -1032,19 +1181,34 @@ def delivery_order_detail(request, pk):
 @user_passes_test(is_delivery_person)
 def delivery_update_status(request, pk):
     dp = request.user.deliveryperson
-    order = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
+    order_instance = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
     if request.method == 'POST':
-        form = DeliveryStatusForm(request.POST, instance=order)
+        form = DeliveryStatusForm(request.POST, instance=order_instance)
         if form.is_valid():
-            order = form.save()
-            # If payment is collected, update the associated Payment model
-            if form.cleaned_data.get('payment_collected'):
-                payment = order.payment
-                payment.paid = True
-                payment.save()
-                messages.success(request, f"Payment for Order #{order.id} marked as Collected!")
+            new_status = form.cleaned_data.get('status')
+            delivery_notes = form.cleaned_data.get('delivery_notes')
+            payment_collected = form.cleaned_data.get('payment_collected')
             
-            messages.success(request, f"Order #{order.id} status updated!")
+            # Update entire group
+            if order_instance.payment:
+                group_items = OrderPlaced.objects.filter(payment=order_instance.payment, delivery_person=dp)
+            else:
+                group_items = OrderPlaced.objects.filter(id=pk, delivery_person=dp)
+
+            for order in group_items:
+                order.status = new_status
+                order.delivery_notes = delivery_notes
+                order.save()
+                
+                if payment_collected:
+                    payment = order.payment
+                    payment.paid = True
+                    payment.save()
+            
+            if payment_collected:
+                messages.success(request, f"Payment for Order group marked as Collected!")
+                
+            messages.success(request, f"Order group status updated to {new_status}!")
             return redirect('delivery-orders')
     return redirect('delivery-order-detail', pk=pk)
 
@@ -1103,16 +1267,23 @@ def admin_delete_delivery_person(request, pk):
 
 @user_passes_test(is_admin)
 def admin_assign_order(request, pk):
-    order = OrderPlaced.objects.get(pk=pk)
+    order_instance = OrderPlaced.objects.get(pk=pk)
     delivery_persons = DeliveryPerson.objects.filter(is_active=True)
+    
+    if order_instance.payment:
+        group_items = OrderPlaced.objects.filter(payment=order_instance.payment)
+    else:
+        group_items = OrderPlaced.objects.filter(id=pk)
+        
     if request.method == 'POST':
         dp_id = request.POST.get('delivery_person')
         if dp_id:
             dp = DeliveryPerson.objects.get(id=dp_id)
-            order.delivery_person = dp
-            order.status = 'Assigned'
-            order.save()
-            messages.success(request, f"Order #{order.id} assigned to {dp.name}")
+            for order in group_items:
+                order.delivery_person = dp
+                order.status = 'Assigned'
+                order.save()
+            messages.success(request, f"Order group assigned to {dp.name} successfully!")
             return redirect('admin-orders')
     return render(request, 'admin_panel/assign_order.html', locals())
 

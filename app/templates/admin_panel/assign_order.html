@@ -13,21 +13,19 @@
                     <i class="fa-solid fa-truck-ramp-box"></i>
                 </div>
                 <div>
-                    <h4 class="fw-bold mb-0">Assign Order #{{ order.id }}</h4>
-                    <p class="text-muted mb-0">Select staff for delivery</p>
+                    <h4 class="fw-bold mb-0">Assign Order Group</h4>
+                    <p class="text-muted mb-0">Select staff for delivery group</p>
                 </div>
             </div>
 
             <div class="p-3 bg-light rounded-4 mb-4 border border-white">
                 <div class="row small g-2">
                     <div class="col-6 text-muted">Customer:</div>
-                    <div class="col-6 fw-bold">{{ order.customer.name }}</div>
-                    <div class="col-6 text-muted">Phone:</div>
-                    <div class="col-6 fw-bold">{{ order.customer.mobile }}</div>
+                    <div class="col-6 fw-bold">{{ order_instance.customer.name }}</div>
+                    <div class="col-6 text-muted">Total Order Items:</div>
+                    <div class="col-6 fw-bold text-dark">{{ group_items|length }} items</div>
                     <div class="col-6 text-muted">Address:</div>
-                    <div class="col-6 fw-bold">{{ order.customer.city }}</div>
-                    <div class="col-6 text-muted">Total:</div>
-                    <div class="col-6 fw-bold text-primary">₹{{ order.total_cost }}</div>
+                    <div class="col-6 fw-bold">{{ order_instance.customer.locality }}, {{ order_instance.customer.city }}</div>
                 </div>
             </div>
 
@@ -39,7 +37,7 @@
                         style="border-radius: 12px;" required>
                         <option value="" selected disabled>Choose staff member...</option>
                         {% for dp in delivery_persons %}
-                        <option value="{{ dp.id }}" {% if order.delivery_person == dp %}selected{% endif %}>
+                        <option value="{{ dp.id }}" {% if order_instance.delivery_person == dp %}selected{% endif %}>
                             {{ dp.name }} ({{ dp.mobile }})
                         </option>
                         {% endfor %}

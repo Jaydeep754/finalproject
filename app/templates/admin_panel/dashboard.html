@@ -96,18 +96,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for order in latest_orders %}
+                        {% for group in latest_orders %}
                         <tr>
-                            <td class="fw-bold">#{{ order.id }}</td>
-                            <td>{{ order.customer.name }}</td>
-                            <td>{{ order.product.title }}</td>
-                            <td>{{ order.ordered_date|date:"d M Y" }}</td>
+                            <td class="fw-bold">#{{ group.id }}</td>
+                            <td>{{ group.customer.name }}</td>
+                            <td>
+                                <span class="fw-bold">{{ group.items.0.product.title }}</span>
+                                {% if group.items|length > 1 %}
+                                <span class="badge bg-light text-primary border ms-1">+{{ group.items|length|add:"-1" }} more</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ group.ordered_date|date:"d M Y" }}</td>
                             <td>
                                 <span class="status-badge 
-                                    {% if order.status == 'Pending' %}status-pending
-                                    {% elif order.status == 'Delivered' %}status-delivered
+                                    {% if group.status == 'Pending' %}status-pending
+                                    {% elif group.status == 'Delivered' %}status-delivered
                                     {% else %}status-shipped{% endif %}">
-                                    {{ order.status }}
+                                    {{ group.status }}
                                 </span>
                             </td>
                         </tr>

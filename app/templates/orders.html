@@ -8,120 +8,164 @@
             style="font-family: 'Outfit', sans-serif; letter-spacing: -1px;">
             Order Archive
         </h1>
-        <p class="text-white-50 lead mx-auto" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
+        <p class="text-white-50 lead mx-auto mb-4" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
             Track the journey of your premium dairy selections from our farm to your foyer.
         </p>
+        
+        <!-- Premium Customer Search Bar -->
+        <div class="row justify-content-center mb-4" data-aos="fade-up" data-aos-delay="300">
+            <div class="col-md-7 col-lg-6">
+                <form action="" method="GET" autocomplete="off">
+                    <div class="input-group input-group-lg shadow rounded-pill overflow-hidden border-0 bg-white bg-opacity-10" style="backdrop-filter: blur(10px); height: 60px;">
+                        <span class="input-group-text bg-transparent border-0 ps-4 pe-3 border-end border-white border-opacity-10">
+                            <i class="bi bi-search text-white opacity-75"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control border-0 bg-transparent text-white shadow-none placeholder-white-50 ms-2" 
+                               placeholder="Find a product or Order ID..." 
+                               value="{{ request.GET.q|default:'' }}"
+                               style="font-size: 1.1rem; font-weight: 400;">
+                        {% if request.GET.q %}
+                        <a href="{% url 'orders' %}" class="btn btn-transparent border-0 text-white opacity-75 d-flex align-items-center px-3"><i class="bi bi-x-lg"></i></a>
+                        {% endif %}
+                        <button class="btn btn-white rounded-pill px-4 fw-bold m-1 shadow-sm" type="submit" style="background: white; color: var(--primary);">
+                            SEARCH
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="d-inline-flex align-items-center bg-white bg-opacity-10 text-white rounded-pill px-4 py-2 border border-white border-opacity-25 shadow-sm" data-aos="fade-up" data-aos-delay="400">
+            <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
+            <span class="small fw-bold">Guaranteed arrival in 10 minutes once out for delivery!</span>
+        </div>
     </div>
 </div>
 
 <div class="container pb-5 mb-5">
+    {% if request.GET.q %}
+    <div class="row mb-4 animate-fade-in">
+        <div class="col-12 text-center">
+            <h5 class="text-muted">
+                Showing <span class="text-primary fw-bold">{{ order_groups|length }}</span> result{{ order_groups|length|pluralize }} for "<span class="text-dark fw-bold">{{ request.GET.q }}</span>"
+            </h5>
+            <a href="{% url 'orders' %}" class="btn btn-link text-decoration-none">Clear all filters</a>
+        </div>
+    </div>
+    {% endif %}
     <div class="row">
         <div class="col-12">
-            {% if order_placed %}
+            {% if order_groups %}
             <div class="row g-4">
-                {% for op in order_placed %}
+                {% for group in order_groups %}
                 <div class="col-12" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
                     <div class="card border-0 shadow-sm rounded-4 overflow-hidden text-dark">
+                        <!-- Group Header -->
+                        <div class="card-header bg-white border-bottom p-4">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge text-white rounded-pill px-3 py-2 small fw-bold me-3"
+                                        style="background-color: var(--primary);">
+                                        ORDER #{{group.id}}
+                                    </span>
+                                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>
+                                        {{group.ordered_date|date:"d M, Y h:i A"}}</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="small text-muted d-block">Order Status</span>
+                                    <span class="fw-bold fs-5 {% if group.status == 'Delivered' %}text-success{% elif group.status == 'Cancel' %}text-danger{% else %}text-primary{% endif %}">
+                                        {{group.status}}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="card-body p-0">
-                            <div class="row g-0">
-                                <!-- Product Image -->
-                                <div class="col-md-2 bg-light d-flex align-items-center justify-content-center p-4">
-                                    <div class="product-img-container" style="width: 120px; height: 120px;">
-                                        <a href="{% url 'product-detail' op.product.id %}">
-                                            <img src="{{op.product.product_image.url}}"
-                                                class="img-fluid h-100 w-100 object-fit-contain"
-                                                alt="{{op.product.title}}">
-                                        </a>
+                            <!-- Items in this group -->
+                            {% for item in group.items %}
+                            <div class="order-item p-4 {% if not forloop.last %}border-bottom{% endif %} zebra-item">
+                                <div class="row align-items-center g-3">
+                                    <div class="col-auto">
+                                        <div class="product-img-container shadow-sm p-1 bg-white rounded-3" style="width: 80px; height: 80px;">
+                                            <a href="{% url 'product-detail' item.product.id %}">
+                                                <img src="{{item.product.product_image.url}}" class="img-fluid h-100 w-100 object-fit-contain" alt="{{item.product.title}}">
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <a href="{% url 'product-detail' item.product.id %}" class="text-decoration-none text-dark">
+                                                    <h6 class="fw-bold mb-1">{{item.product.title}}</h6>
+                                                </a>
+                                                <div class="d-flex gap-3">
+                                                    <span class="small text-muted">Quantity: <span class="fw-bold text-dark">{{item.quantity}}</span></span>
+                                                    <span class="small text-muted">Size: <span class="badge bg-light text-primary border border-primary shadow-sm" style="font-size: 0.65rem;">{{item.size}}</span></span>
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                    {% if group.status == 'Delivered' %}
+                                                    <a href="{% url 'product-detail' item.product.id %}" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-3" style="font-size: 0.7rem;">
+                                                        <i class="bi bi-star-fill me-1"></i> Rate
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="fw-bold" style="color: var(--primary);">₹{{item.total_cost}}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">₹{{item.price}} / unit</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+                            {% endfor %}
+                        </div>
 
-                                <!-- Order Details -->
-                                <div class="col-md-5 p-4 d-flex flex-column justify-content-center">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <span class="badge text-white rounded-pill px-3 py-2 small fw-bold me-2"
-                                            style="background-color: var(--primary);">#ORD-{{op.id}}</span>
-                                        <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>
-                                            {{op.ordered_date|date:"d M, Y"}}</span>
-                                    </div>
-                                    <a href="{% url 'product-detail' op.product.id %}"
-                                        class="text-decoration-none text-dark">
-                                        <h5 class="fw-bold mb-1">{{op.product.title}}
-                                            <span
-                                                class="badge bg-light text-primary border border-primary ms-2 shadow-sm"
-                                                style="font-size: 0.7rem;">{{op.size}}</span>
-                                        </h5>
-                                    </a>
-                                    <div class="d-flex gap-4 mt-2">
-                                        <div class="small text-muted">Quantity: <span
-                                                class="fw-bold text-dark">{{op.quantity}}</span></div>
-                                        <div class="small text-muted">Price: <span class="fw-bold"
-                                                style="color: var(--primary);">₹{{op.total_cost}}</span></div>
-                                    </div>
-                                </div>
-
-                                <!-- Status Tracker -->
-                                <div
-                                    class="col-md-5 p-4 bg-light bg-opacity-50 d-flex flex-column justify-content-center border-start">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <span class="small fw-bold text-uppercase letter-spacing-1 text-muted">Delivery
-                                            Status</span>
-                                        <span
-                                            class="fw-bold {% if op.status == 'Delivered' %}text-success{% elif op.status == 'Cancel' %}text-danger{% else %}text-primary{% endif %}">{{op.status}}</span>
-                                    </div>
-
-                                    <div class="progress rounded-pill mb-2" style="height: 8px;">
-                                        {% if op.status == 'Pending' %}
-                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                            role="progressbar" style="width: 15%;"></div>
-                                        {% elif op.status == 'Accepted' %}
+                        <!-- Group Footer -->
+                        <div class="card-footer bg-light p-4 border-top-0">
+                            <div class="row align-items-center">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <div class="progress rounded-pill mb-2" style="height: 10px;">
+                                        {% if group.status == 'Pending' %}
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 15%;"></div>
+                                        {% elif group.status == 'Accepted' %}
                                         <div class="progress-bar" role="progressbar" style="width: 30%;"></div>
-                                        {% elif op.status == 'Packed' %}
+                                        {% elif group.status == 'Packed' %}
                                         <div class="progress-bar bg-info" role="progressbar" style="width: 50%;"></div>
-                                        {% elif op.status == 'On the way' %}
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 75%;">
-                                        </div>
-                                        {% elif op.status == 'Delivered' %}
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;">
-                                        </div>
-                                        {% elif op.status == 'Cancel' %}
-                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;">
-                                        </div>
+                                        {% elif group.status == 'Out for Delivery' or group.status == 'On the way' %}
+                                        <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%;"></div>
+                                        {% elif group.status == 'Delivered' %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div>
+                                        {% elif group.status == 'Cancel' %}
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;"></div>
                                         {% endif %}
                                     </div>
-
-                                    <p class="small text-muted mb-2">
-                                        {% if op.status == 'Pending' %}Awaiting guild confirmation...
-                                        {% elif op.status == 'Accepted' %}Authenticated by our dairy smiths.
-                                        {% elif op.status == 'Packed' %}Sealed for freshness.
-                                        {% elif op.status == 'On the way' %}In transit to your coordinates.
-                                        {% elif op.status == 'Delivered' %}Successfully received.
-                                        {% elif op.status == 'Cancel' %}Order has been terminated.
+                                    <p class="small text-muted mb-0">
+                                        {% if group.status == 'Pending' %}Awaiting guild confirmation...
+                                        {% elif group.status == 'Accepted' %}Authenticated by our dairy smiths.
+                                        {% elif group.status == 'Packed' %}Sealed for freshness.
+                                        {% elif group.status == 'Out for Delivery' or group.status == 'On the way' %}In transit to your coordinates. <br><span class="fw-bold text-success"><i class="bi bi-clock-history me-1"></i> Your order will arrive in 10 minutes!</span>
+                                        {% elif group.status == 'Delivered' %}Successfully received.
+                                        {% elif group.status == 'Cancel' %}Order has been terminated.
                                         {% endif %}
                                     </p>
-
-                                    <div class="mt-2 text-start d-flex flex-wrap gap-2">
-                                        <a href="{% url 'download-invoice' op.payment.id %}"
-                                            class="btn btn-outline-secondary btn-sm rounded-pill px-4 shadow-sm"
-                                            style="font-size: 0.8rem;">
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <div class="mb-3">
+                                        <span class="text-muted small me-2">Grand Total:</span>
+                                        <span class="fw-bold fs-4" style="color: var(--primary);">₹{{group.total_amount}}</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                                        <a href="{% url 'download-invoice' group.payment.id %}" class="btn btn-outline-secondary btn-sm rounded-pill px-4 shadow-sm">
                                             <i class="bi bi-file-earmark-pdf-fill me-1"></i> Invoice
                                         </a>
-                                        {% if op.status == 'Pending' or op.status == 'Accepted' %}
-                                        <a href="{% url 'cancel-order' op.id %}"
-                                            onclick="return confirm('Are you sure you want to cancel this order?')"
-                                            class="btn btn-outline-danger btn-sm rounded-pill px-4 shadow-sm"
-                                            style="font-size: 0.8rem;">
+                                        {% if group.status == 'Pending' or group.status == 'Accepted' %}
+                                        <a href="{% url 'cancel-order' group.first_item_id %}" onclick="return confirm('Are you sure you want to cancel this entire order group?')" class="btn btn-outline-danger btn-sm rounded-pill px-4 shadow-sm">
                                             <i class="bi bi-x-circle-fill me-1"></i> Cancel Order
                                         </a>
                                         {% endif %}
-                                        {% if op.status == 'Delivered' %}
-                                        <a href="{% url 'product-detail' op.product.id %}"
-                                            class="btn btn-primary btn-sm rounded-pill px-4 text-white shadow-sm"
-                                            style="font-size: 0.8rem;">
-                                            <i class="bi bi-star-fill me-1"></i> Rate & Review
-                                        </a>
-                                        <a href="{% url 'submit-complaint' op.id %}"
-                                            class="btn btn-outline-danger btn-sm rounded-pill px-4 shadow-sm"
-                                            style="font-size: 0.8rem;">
+                                        {% if group.status == 'Delivered' %}
+                                        <a href="{% url 'submit-complaint' group.first_item_id %}" class="btn btn-outline-danger btn-sm rounded-pill px-4 shadow-sm">
                                             <i class="bi bi-exclamation-triangle-fill me-1"></i> File Complaint
                                         </a>
                                         {% endif %}
@@ -143,6 +187,7 @@
                 <a href="{% url 'home' %}" class="btn btn-classic px-5 py-3 rounded-pill">Explore Heritage</a>
             </div>
             {% endif %}
+
         </div>
     </div>
 </div>
@@ -158,6 +203,10 @@
 
     .object-fit-contain {
         object-fit: contain;
+    }
+
+    .zebra-item:nth-child(even) {
+        background: var(--accent-light) !important;
     }
 </style>
 {% endblock main %}
