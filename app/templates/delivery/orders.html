@@ -35,7 +35,13 @@
                             </span>
                             <h5 class="fw-bold">₹{{op.total_cost}}</h5>
                             <a href="{% url 'delivery-order-detail' op.id %}"
-                                class="btn btn-outline-primary btn-sm mt-2">View Details & Update</a>
+                                class="btn btn-outline-primary btn-sm mt-2">
+                                {% if op.status == 'Delivered' or op.status == 'Cancel' %}
+                                View Details
+                                {% else %}
+                                View Details & Update
+                                {% endif %}
+                            </a>
                         </div>
                     </div>
                 </div>

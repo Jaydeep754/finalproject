@@ -70,6 +70,25 @@
                 </div>
 
                 <div class="col-md-5">
+                    {% if order.status == 'Delivered' or order.status == 'Cancel' %}
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body p-4 text-center d-flex flex-column justify-content-center">
+                            <div class="mb-4">
+                                <i class="bi bi-check-circle-fill display-2 text-success"></i>
+                            </div>
+                            <h4 class="fw-bold mb-2">Order {{order.status}}</h4>
+                            <p class="text-muted">This order journey is complete and cannot be modified.</p>
+
+                            {% if order.delivery_notes %}
+                            <div class="mt-4 p-3 bg-light rounded text-start border-start border-4 border-primary">
+                                <small class="fw-bold text-uppercase letter-spacing-1 d-block mb-2"
+                                    style="font-size: 0.7rem;">Final Delivery Notes</small>
+                                <p class="mb-0 small text-secondary italic">"{{order.delivery_notes}}"</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-3 border-bottom pb-2">Update Delivery Status</h5>
@@ -83,12 +102,49 @@
                                     <label class="form-label">Delivery Notes</label>
                                     {{form.delivery_notes}}
                                 </div>
+                                {% with payment=order.payment %}
+                                {% if payment.razorpay_payment_status == 'Cash On Delivery' and not payment.paid %}
+                                <div id="payment-collected-section" class="mb-3" style="display: none;">
+                                    <div class="form-check p-3 bg-light rounded border border-warning shadow-sm">
+                                        {{form.payment_collected}}
+                                        <label class="form-check-label ms-2 fw-bold text-dark"
+                                            for="{{form.payment_collected.id_for_label}}">
+                                            <i class="bi bi-cash-coin me-1"></i> Payment Collected?
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Please confirm if you have received the cash
+                                        payment for this delivery.</small>
+                                </div>
+
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        const statusSelect = document.getElementById('id_status');
+                                        const paymentSection = document.getElementById('payment-collected-section');
+
+                                        function togglePaymentSection() {
+                                            if (statusSelect.value === 'Delivered') {
+                                                paymentSection.style.display = 'block';
+                                                paymentSection.classList.add('animate__animated', 'animate__fadeIn');
+                                            } else {
+                                                paymentSection.style.display = 'none';
+                                            }
+                                        }
+
+                                        if (statusSelect && paymentSection) {
+                                            togglePaymentSection();
+                                            statusSelect.addEventListener('change', togglePaymentSection);
+                                        }
+                                    });
+                                </script>
+                                {% endif %}
+                                {% endwith %}
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-primary">Save Changes</button>
                                 </div>
                             </form>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

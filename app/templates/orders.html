@@ -101,10 +101,18 @@
 
                                     <div class="mt-2 text-start d-flex flex-wrap gap-2">
                                         <a href="{% url 'download-invoice' op.payment.id %}"
-                                           class="btn btn-outline-secondary btn-sm rounded-pill px-4 shadow-sm"
-                                           style="font-size: 0.8rem;">
+                                            class="btn btn-outline-secondary btn-sm rounded-pill px-4 shadow-sm"
+                                            style="font-size: 0.8rem;">
                                             <i class="bi bi-file-earmark-pdf-fill me-1"></i> Invoice
                                         </a>
+                                        {% if op.status == 'Pending' or op.status == 'Accepted' %}
+                                        <a href="{% url 'cancel-order' op.id %}"
+                                            onclick="return confirm('Are you sure you want to cancel this order?')"
+                                            class="btn btn-outline-danger btn-sm rounded-pill px-4 shadow-sm"
+                                            style="font-size: 0.8rem;">
+                                            <i class="bi bi-x-circle-fill me-1"></i> Cancel Order
+                                        </a>
+                                        {% endif %}
                                         {% if op.status == 'Delivered' %}
                                         <a href="{% url 'product-detail' op.product.id %}"
                                             class="btn btn-primary btn-sm rounded-pill px-4 text-white shadow-sm"

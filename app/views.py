@@ -736,16 +736,64 @@ def admin_orders(request):
     orders = OrderPlaced.objects.all().order_by('-ordered_date')
     return render(request, 'admin_panel/orders.html', locals())
 
+def restore_stock(order):
+    product = order.product
+    product.quantity += order.quantity
+    product.save()
+
+def send_cancellation_email(order):
+    user_email = order.user.email
+    if not user_email:
+        return
+        
+    subject = f"Order Cancelled - #ORD-{order.id}"
+    
+    if order.payment.razorpay_payment_status == 'Cash On Delivery':
+        message = f"Hi {order.user.username},\n\nSorry, your product (Order #ORD-{order.id}) is cancelled. Sorry for the inconveniences."
+    else:
+        message = f"Hi {order.user.username},\n\nYour order (Order #ORD-{order.id}) is cancelled. Your payment will be refunded."
+        
+    from_email = settings.DEFAULT_FROM_EMAIL
+    try:
+        send_mail(subject, message, from_email, [user_email])
+    except Exception as e:
+        print(f"Error sending cancellation email: {e}")
+
 @user_passes_test(is_admin)
 def admin_update_order(request, pk):
     order = OrderPlaced.objects.get(pk=pk)
     if request.method == 'POST':
-        status = request.POST.get('status')
-        order.status = status
+        new_status = request.POST.get('status')
+        old_status = order.status
+        
+        if new_status == 'Cancel' and old_status != 'Cancel':
+            restore_stock(order)
+            send_cancellation_email(order)
+            
+        order.status = new_status
         order.save()
-        messages.success(request, f"Order status updated to {status}!")
+        messages.success(request, f"Order status updated to {new_status}!")
         return redirect('admin-orders')
     return redirect('admin-orders')
+
+@login_required
+def cancel_order(request, pk):
+    try:
+        order = OrderPlaced.objects.get(pk=pk, user=request.user)
+    except OrderPlaced.DoesNotExist:
+        messages.error(request, "Order not found.")
+        return redirect('orders')
+        
+    if order.status in ['Pending', 'Accepted']:
+        order.status = 'Cancel'
+        order.save()
+        restore_stock(order)
+        send_cancellation_email(order)
+        messages.success(request, "Order cancelled successfully. Stock has been restored and notification sent.")
+    else:
+        messages.error(request, "Order cannot be cancelled at this stage.")
+        
+    return redirect('orders')
 
 @user_passes_test(is_admin)
 def admin_customers(request):
@@ -988,7 +1036,14 @@ def delivery_update_status(request, pk):
     if request.method == 'POST':
         form = DeliveryStatusForm(request.POST, instance=order)
         if form.is_valid():
-            form.save()
+            order = form.save()
+            # If payment is collected, update the associated Payment model
+            if form.cleaned_data.get('payment_collected'):
+                payment = order.payment
+                payment.paid = True
+                payment.save()
+                messages.success(request, f"Payment for Order #{order.id} marked as Collected!")
+            
             messages.success(request, f"Order #{order.id} status updated!")
             return redirect('delivery-orders')
     return redirect('delivery-order-detail', pk=pk)

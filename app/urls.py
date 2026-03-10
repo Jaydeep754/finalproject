@@ -25,6 +25,7 @@ urlpatterns = [
     path("checkout-cod/",checkout_cod,name='checkout-cod'),
 
     path("orders/",orders,name='orders'),
+    path("cancel-order/<int:pk>/", cancel_order, name="cancel-order"),
     path("orders/",orders,name='wishlist'),
     path("search/",search,name='search'),
 

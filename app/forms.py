@@ -110,9 +110,18 @@ class DeliveryPersonProfileForm(forms.ModelForm):
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
+DELIVERY_STATUS_CHOICES = [
+    ('Out for Delivery', 'Out for Delivery'),
+    ('Delivered', 'Delivered'),
+    ('Failed Delivery', 'Failed Delivery'),
+    ('Cancel', 'Cancel'),
+]
+
 from .models import OrderPlaced
 
 class DeliveryStatusForm(forms.ModelForm):
+    status = forms.ChoiceField(choices=DELIVERY_STATUS_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    payment_collected = forms.BooleanField(required=False, label="Payment Collected?", widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
     class Meta:
         model = OrderPlaced
         fields = ['status', 'delivery_notes']
