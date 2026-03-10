@@ -82,6 +82,7 @@ urlpatterns = [
     path("admin-add-delivery-person/", admin_add_delivery_person, name="admin-add-delivery-person"),
     path("admin-update-delivery-person/<int:pk>/", admin_update_delivery_person, name="admin-update-delivery-person"),
     path("admin-delete-delivery-person/<int:pk>/", admin_delete_delivery_person, name="admin-delete-delivery-person"),
+    path("admin-delivery-person-orders/<int:pk>/", admin_delivery_person_orders, name="admin-delivery-person-orders"),
     path("admin-assign-order/<int:pk>/", admin_assign_order, name="admin-assign-order"),
 
     # Invoice Generation

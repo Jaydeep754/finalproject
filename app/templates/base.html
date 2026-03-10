@@ -52,6 +52,12 @@
     {% endif %}
   </div>
 
+  {% if show_restricted_overlay %}
+  <div class="regional-notice py-2 text-center small text-white fw-bold d-none d-lg-block" style="background: var(--primary); font-family: 'Outfit';">
+      <i class="bi bi-geo-alt-fill me-2"></i> Milk & More heritage currently serving exclusively in Ahmedabad. Expansion in progress!
+  </div>
+  {% endif %}
+
   {% if request.resolver_match.url_name != 'login' %}
   <!-- Top Utility Bar -->
   <div class="top-utility-bar d-none d-lg-block">

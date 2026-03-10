@@ -84,14 +84,22 @@
                         {% endfor %}
                     </div>
                 </div>
-                <div class="card-footer bg-light p-4 border-top-0">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted small">Total Collection:</span>
-                            <div class="fw-bold fs-4 text-primary">₹{{group.total_amount}}</div>
+                <div class="card-footer bg-white p-4 border-top border-light">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="d-flex gap-4">
+                            <div>
+                                <p class="text-muted small text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Group Total</p>
+                                <div class="fw-bold fs-4" style="color: var(--primary);">₹{{group.total_amount}}</div>
+                            </div>
+                            {% if group.status == 'Delivered' %}
+                            <div class="ps-4 border-start border-2">
+                                <p class="text-muted small text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">Your Earning</p>
+                                <div class="fw-bold fs-4 text-success">₹{{group.earning}}</div>
+                            </div>
+                            {% endif %}
                         </div>
-                        <a href="{% url 'delivery-order-detail' group.first_item_id %}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
-                            <i class="bi bi-pencil-square me-1"></i> Manage Group
+                        <a href="{% url 'delivery-order-detail' group.first_item_id %}" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                             Update Status <i class="bi bi-arrow-right-short fs-4"></i>
                         </a>
                     </div>
                 </div>

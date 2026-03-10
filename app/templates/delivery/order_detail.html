@@ -93,6 +93,18 @@
                                 <p class="mb-0 small text-secondary italic">"{{order.delivery_notes}}"</p>
                             </div>
                             {% endif %}
+                            
+                            {% if order.status == 'Delivered' %}
+                            <div class="mt-4 p-3 rounded-4 shadow-sm border-0 d-flex align-items-center gap-3" style="background: var(--accent); border: 1px solid var(--primary-light) !important;">
+                                <div class="bg-primary text-white p-2 rounded-circle shadow-sm" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-wallet2 fs-5"></i>
+                                </div>
+                                <div class="text-start">
+                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Earning from this Order (₹30 + 5%)</small>
+                                    <span class="fw-bold fs-3 text-primary">₹{{group_earning}}</span>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% else %}

@@ -134,6 +134,16 @@
                 </div>
 
                 <div class="col-12 col-md-8">
+                    {% if show_restricted_overlay %}
+                    <div class="h-100 p-4 rounded-4 border-2 d-flex align-items-center justify-content-center text-center shadow-sm"
+                         style="background: var(--accent); border: 2px dashed var(--primary); color: var(--primary);">
+                        <div data-aos="zoom-in">
+                            <i class="bi bi-geo-alt-fill me-2 fs-5"></i>
+                            <span class="fw-bold text-uppercase letter-spacing-1">Coming soon to your city</span>
+                            <p class="small text-muted mb-0 mt-1">Currently serving exclusively in Ahmedabad</p>
+                        </div>
+                    </div>
+                    {% else %}
                     <div class="row g-3">
                         <div class="col-6">
                             <button type="submit"
@@ -152,6 +162,7 @@
                             </button>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </form>
 

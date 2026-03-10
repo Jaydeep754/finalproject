@@ -1,0 +1,137 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Delivery History - {{ dp.name }}{% endblock %}
+{% block page_title %}Delivery History: {{ dp.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'admin-delivery-persons' %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="fa-solid fa-arrow-left me-2"></i> Back to Staff List
+    </a>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card">
+            <h5 class="text-muted mb-3">Total Deliveries</h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="fw-bold mb-0 text-primary">{{ order_groups|length }}</h2>
+                <i class="fa-solid fa-box-open fs-1 text-primary opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card">
+            <h5 class="text-muted mb-3">Staff Earnings</h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="fw-bold mb-0 text-success">₹{{ total_earnings|floatformat:2 }}</h2>
+                <i class="fa-solid fa-wallet fs-1 text-success opacity-25"></i>
+            </div>
+            <small class="text-muted mt-2">(₹30 base + 5% commission)</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card">
+            <h5 class="text-muted mb-3">Total COD Collected</h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="fw-bold mb-0 text-warning">₹{{ total_collection|floatformat:2 }}</h2>
+                <i class="fa-solid fa-money-bill-transfer fs-1 text-warning opacity-25"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="fw-bold mb-4">Delivered Orders History</h4>
+
+{% for group in order_groups %}
+<div class="card mb-4 border-0 shadow-sm overflow-hidden" style="border-radius: 15px;">
+    <div class="card-header bg-white p-4 border-bottom border-light">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <span class="badge bg-primary-light text-primary rounded-pill px-3 py-2 mb-2">#{{ group.id }}</span>
+                <h5 class="fw-bold mb-1">{{ group.customer.name }}</h5>
+                <p class="text-muted small mb-0">
+                    <i class="fa-solid fa-calendar-day me-1"></i> {{ group.ordered_date|date:"d M Y, h:i A" }}
+                </p>
+            </div>
+            <div class="text-md-end">
+                <div class="small text-muted mb-1">Status</div>
+                <span class="badge bg-success px-3 py-2 rounded-pill">Delivered</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th class="text-end pe-4">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in group.items %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="{{ item.product.product_image.url }}" class="rounded shadow-sm" width="50" height="50" style="object-fit: cover;">
+                                <div>
+                                    <div class="fw-bold text-dark">{{ item.product.title }}</div>
+                                    <div class="small text-muted">{{ item.size }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ item.quantity }}</td>
+                        <td>₹{{ item.price }}</td>
+                        <td class="text-end pe-4 fw-bold">₹{{ item.total_cost }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-white p-4 border-top border-light">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+            <div class="d-flex gap-5">
+                <div>
+                    <div class="small text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">Order Total</div>
+                    <div class="fw-bold fs-5">₹{{ group.total_amount }}</div>
+                </div>
+                <div>
+                    <div class="small text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">Staff Commission</div>
+                    <div class="fw-bold fs-5 text-success">₹{{ group.earning }}</div>
+                </div>
+                <div>
+                    <div class="small text-muted text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">Payment Method</div>
+                    <div class="fw-bold fs-5 text-dark">{{ group.payment.razorpay_payment_status }}</div>
+                </div>
+            </div>
+            <a href="{% url 'admin-update-order' group.first_item_id %}" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                View Full Details
+            </a>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="glass-card text-center py-5">
+    <i class="fa-solid fa-receipt display-1 text-muted opacity-25 mb-3"></i>
+    <p class="lead text-muted">No delivered orders found for this personnel.</p>
+</div>
+{% endfor %}
+
+<style>
+    .dash-card {
+        border-radius: 15px;
+        transition: transform 0.3s ease;
+    }
+    .dash-card:hover {
+        transform: translateY(-5px);
+    }
+    .bg-primary-light {
+        background-color: rgba(var(--primary-rgb, 0, 123, 255), 0.1);
+    }
+</style>
+{% endblock %}

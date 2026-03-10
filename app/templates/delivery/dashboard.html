@@ -41,17 +41,182 @@
                 </div>
             </div>
 
-            <div class="mt-5 card p-4 shadow-sm border-0 bg-white">
-                <h4 class="mb-3">COD Collection Summary</h4>
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <p class="text-muted mb-1">Total COD Collected</p>
-                        <h2 class="fw-bold">₹{{total_cod_collected}}</h2>
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card" style="cursor: pointer;" 
+                         data-bs-toggle="modal" data-bs-target="#todayEarningsModal">
+                        <h4 class="mb-3 text-primary">Today's Earnings</h4>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Earned Today</p>
+                                <h2 class="fw-bold" style="color: var(--primary);">₹{{today_earnings}}</h2>
+                                <small class="text-muted"><i class="bi bi-calendar-event me-1"></i> View Detail</small>
+                            </div>
+                            <i class="bi bi-lightning-charge display-5 text-primary opacity-25"></i>
+                        </div>
                     </div>
-                    <i class="bi bi-cash-coin display-4 text-success"></i>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card" style="cursor: pointer;" 
+                         data-bs-toggle="modal" data-bs-target="#monthEarningsModal">
+                        <h4 class="mb-3 text-success">Monthly Earnings</h4>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">{{now|date:"F"}} Earnings</p>
+                                <h2 class="fw-bold text-success">₹{{month_earnings}}</h2>
+                                <small class="text-muted"><i class="bi bi-calendar-month me-1"></i> View Detail</small>
+                            </div>
+                            <i class="bi bi-graph-up-arrow display-5 text-success opacity-25"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card" style="cursor: pointer;"
+                         data-bs-toggle="modal" data-bs-target="#codModal">
+                        <h4 class="mb-3 text-warning">COD Collected</h4>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Total Cash</p>
+                                <h2 class="fw-bold text-warning">₹{{total_cod_collected}}</h2>
+                                <small class="text-muted"><i class="bi bi-cash-stack me-1"></i> View Detail</small>
+                            </div>
+                            <i class="bi bi-currency-rupee display-5 text-warning opacity-25"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today Earnings Modal -->
+    <div class="modal fade" id="todayEarningsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-light p-4">
+                    <h5 class="modal-title fw-bold" style="font-family: 'Outfit';">Today's Performance Breakdown (₹30 + 5%)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0 rounded-start">Order ID</th>
+                                    <th class="border-0">Total</th>
+                                    <th class="border-0">Time</th>
+                                    <th class="border-0 rounded-end text-end">Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for g in today_delivery_groups %}
+                                <tr>
+                                    <td class="fw-bold text-primary">#{{g.id}}</td>
+                                    <td>₹{{g.total_amount}}</td>
+                                    <td class="small text-muted">{{g.ordered_date|date:"h:i A"}}</td>
+                                    <td class="text-end fw-bold text-success">₹{{g.earning}}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted italic">No deliveries completed today yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month Earnings Modal -->
+    <div class="modal fade" id="monthEarningsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-light p-4">
+                    <h5 class="modal-title fw-bold" style="font-family: 'Outfit';">{{now|date:"F Y"}} Performance (₹30 + 5%)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0 rounded-start">Order ID</th>
+                                    <th class="border-0">Total Amount</th>
+                                    <th class="border-0">Date</th>
+                                    <th class="border-0 rounded-end text-end">Earning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for g in month_delivery_groups %}
+                                <tr>
+                                    <td class="fw-bold text-primary">#{{g.id}}</td>
+                                    <td>₹{{g.total_amount}}</td>
+                                    <td class="small text-muted">{{g.ordered_date|date:"d M"}}</td>
+                                    <td class="text-end fw-bold text-success">₹{{g.earning}}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted italic">No deliveries this month.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COD Collection Modal -->
+    <div class="modal fade" id="codModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-light p-4">
+                    <h5 class="modal-title fw-bold" style="font-family: 'Outfit';">COD Collection History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0 rounded-start">Order ID</th>
+                                    <th class="border-0">Customer</th>
+                                    <th class="border-0">Collected On</th>
+                                    <th class="border-0 rounded-end text-end">Cash Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for g in cod_delivery_groups %}
+                                <tr>
+                                    <td class="fw-bold text-primary">#{{g.id}}</td>
+                                    <td>{{g.customer.name}}</td>
+                                    <td class="small text-muted">{{g.ordered_date|date:"d M, h:i A"}}</td>
+                                    <td class="text-end fw-bold text-dark">₹{{g.total_amount}}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted italic">No COD collections registered.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .dash-card {
+        transition: transform 0.3s ease, border 0.3s ease;
+        border: 1px solid transparent !important;
+    }
+    .dash-card:hover {
+        transform: translateY(-5px);
+        border: 1px solid var(--primary-light) !important;
+    }
+</style>
 {% endblock main %}
