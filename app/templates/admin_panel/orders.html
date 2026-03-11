@@ -116,24 +116,21 @@
                             <div class="d-flex flex-column align-items-md-end gap-3">
                                 <div class="d-flex align-items-center gap-3">
                                     <span class="small fw-bold text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">Current Journey</span>
-                                    <span class="status-badge fs-6 {% if group.status == 'Pending' %}status-pending{% elif group.status == 'Delivered' %}status-delivered{% elif group.status == 'Cancel' %}bg-secondary text-white{% else %}status-shipped{% endif %}">
+                                    <span class="status-badge fs-6 {% if group.status == 'Pending' %}status-pending{% elif group.status == 'Delivered' %}status-delivered{% elif group.status == 'Failed Delivery' %}status-failed-delivery{% elif group.status == 'Cancel' %}bg-secondary text-white{% else %}status-shipped{% endif %}">
                                         {{ group.status }}
                                     </span>
                                 </div>
                                 <div class="update-action-box p-2 rounded-4 bg-light border">
                                     <form action="{% url 'admin-update-order' group.first_item_id %}" method="POST" class="d-flex gap-2">
                                         {% csrf_token %}
-                                        <select name="status" class="form-select form-select-sm border-0 bg-white shadow-sm" style="width: 150px; border-radius: 12px;" {% if group.status == 'Delivered' %}disabled{% endif %}>
+                                        <select name="status" class="form-select form-select-sm border-0 bg-white shadow-sm" style="width: 150px; border-radius: 12px;" {% if group.status == 'Delivered' or group.status == 'Failed Delivery' %}disabled{% endif %}>
                                             <option value="Pending" {% if group.status == 'Pending' %}selected{% endif %}>Pending</option>
                                             <option value="Accepted" {% if group.status == 'Accepted' %}selected{% endif %}>Accepted</option>
                                             <option value="Packed" {% if group.status == 'Packed' %}selected{% endif %}>Packed</option>
                                             <option value="Assigned" {% if group.status == 'Assigned' %}selected{% endif %}>Assigned</option>
-                                            <option value="Out for Delivery" {% if group.status == 'Out for Delivery' %}selected{% endif %}>Out for Delivery</option>
-                                            <option value="Delivered" {% if group.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                            <option value="Failed Delivery" {% if group.status == 'Failed Delivery' %}selected{% endif %}>Failed Delivery</option>
                                             <option value="Cancel" {% if group.status == 'Cancel' %}selected{% endif %}>Cancel</option>
                                         </select>
-                                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-none" {% if group.status == 'Delivered' %}disabled{% endif %}>Update</button>
+                                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-none" {% if group.status == 'Delivered' or group.status == 'Failed Delivery' %}disabled{% endif %}>Update</button>
                                     </form>
                                 </div>
                             </div>
@@ -189,14 +186,14 @@
                                     <div class="small fw-bold text-uppercase opacity-75" style="font-size: 0.6rem;">Delivery Partner</div>
                                     <div class="fw-bold">{{group.delivery_person.name}}</div>
                                 </div>
-                                {% if group.status != 'Delivered' %}
+                                {% if group.status != 'Delivered' and group.status != 'Failed Delivery' %}
                                     <a href="{% url 'admin-assign-order' group.first_item_id %}" class="btn btn-sm btn-link text-primary text-decoration-none fw-bold ms-2 border-start ps-3">CHANGE</a>
                                 {% else %}
                                     <button class="btn btn-sm btn-link text-secondary fw-bold ms-2 border-start ps-3" disabled>CHANGE</button>
                                 {% endif %}
                             </div>
                             {% else %}
-                            {% if group.status != 'Delivered' %}
+                            {% if group.status != 'Delivered' and group.status != 'Failed Delivery' %}
                                 <a href="{% url 'admin-assign-order' group.first_item_id %}" class="btn btn-sm btn-warning rounded-pill px-4 text-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2">
                                     <i class="fa-solid fa-user-plus"></i> ASSIGN DELIVERY STAFF
                                 </a>
@@ -225,13 +222,7 @@
                                     <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-sm">ACCEPT ALL</button>
                                 </form>
                                 {% endif %}
-                                {% if group.status != 'Delivered' and group.status != 'Cancel' %}
-                                <form action="{% url 'admin-update-order' group.first_item_id %}" method="POST">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="status" value="Delivered">
-                                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm">MARK DELIVERED</button>
-                                </form>
-                                {% endif %}
+
                             </div>
                         </div>
                     </div>

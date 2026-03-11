@@ -77,6 +77,7 @@ urlpatterns = [
     path("delivery-order-detail/<int:pk>/", delivery_order_detail, name="delivery-order-detail"),
     path("delivery-update-status/<int:pk>/", delivery_update_status, name="delivery-update-status"),
     path("delivery-profile/", delivery_profile, name="delivery-profile"),
+    path("delivery-otp-verify/<int:pk>/", delivery_otp_verify, name="delivery-otp-verify"),
     
     # Admin - Delivery Person Management
     path("admin-delivery-persons/", admin_delivery_persons, name="admin-delivery-persons"),

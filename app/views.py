@@ -10,7 +10,9 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.conf import settings
 from django.core.mail import send_mail
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import user_passes_test, login_required
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 # ...existing code...
 
 @user_passes_test(lambda u: u.is_superuser or u.is_staff)
@@ -1289,34 +1291,111 @@ def delivery_update_status(request, pk):
     dp = request.user.deliveryperson
     order_instance = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
     if request.method == 'POST':
-        form = DeliveryStatusForm(request.POST, instance=order_instance)
-        if form.is_valid():
-            new_status = form.cleaned_data.get('status')
-            delivery_notes = form.cleaned_data.get('delivery_notes')
-            payment_collected = form.cleaned_data.get('payment_collected')
-            
-            # Update entire group
-            if order_instance.payment:
-                group_items = OrderPlaced.objects.filter(payment=order_instance.payment, delivery_person=dp)
-            else:
-                group_items = OrderPlaced.objects.filter(id=pk, delivery_person=dp)
+        # Prevent updating if order is already Delivered or Failed Delivery
+        if order_instance.status in ['Delivered', 'Failed Delivery']:
+            return JsonResponse({'status': 'error', 'message': 'This order cannot be modified'}, status=400)
+        
+        new_status = request.POST.get('status')
+        payment_collected = request.POST.get('payment_collected') == 'on'
+        delivery_notes = request.POST.get('delivery_notes', '')
 
+        if not new_status:
+            return JsonResponse({'status': 'error', 'message': 'Status is required'}, status=400)
+
+        # Update entire group
+        if order_instance.payment:
+            group_items = OrderPlaced.objects.filter(payment=order_instance.payment, delivery_person=dp)
+        else:
+            group_items = OrderPlaced.objects.filter(id=pk, delivery_person=dp)
+
+        # If status is set to 'Out for Delivery', generate/send OTP
+        if new_status == 'Out for Delivery':
+            import random
             for order in group_items:
+                otp = random.randint(100000, 999999)
+                order.delivery_otp = str(otp)
                 order.status = new_status
-                order.delivery_notes = delivery_notes
+                if delivery_notes:
+                    order.delivery_notes = delivery_notes
                 order.save()
-                
-                if payment_collected:
-                    payment = order.payment
-                    payment.paid = True
-                    payment.save()
+                # Send OTP to customer email
+                customer_email = order.customer.user.email
+                if customer_email:
+                    subject = 'Your Delivery OTP - MILK&MORE'
+                    message = f'Your OTP for order delivery confirmation is: {otp}\nPlease provide this OTP to the delivery person.'
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    try:
+                        send_mail(subject, message, from_email, [customer_email])
+                    except Exception as e:
+                        print(f"Error sending OTP email: {e}")
             
             if payment_collected:
-                messages.success(request, f"Payment for Order group marked as Collected!")
+                for order in group_items:
+                    if order.payment:
+                        order.payment.paid = True
+                        order.payment.save()
+            
+            return JsonResponse({'status': 'success', 'message': 'OTP sent to customer email'})
+
+        # If status is set to 'Delivered', save payment status (OTP already verified by delivery_otp_verify)
+        if new_status == 'Delivered':
+            for order in group_items:
+                if payment_collected and order.payment:
+                    order.payment.paid = True
+                    order.payment.save()
+            
+            return JsonResponse({'status': 'success', 'message': 'Order marked as delivered with payment recorded'})
+
+        # If status is set to 'Failed Delivery', send refund notification email
+        if new_status == 'Failed Delivery':
+            for order in group_items:
+                order.status = new_status
+                if delivery_notes:
+                    order.delivery_notes = delivery_notes
+                order.save()
                 
-            messages.success(request, f"Order group status updated to {new_status}!")
-            return redirect('delivery-orders')
-    return redirect('delivery-order-detail', pk=pk)
+                # Send refund notification email to customer
+                customer_email = order.customer.user.email
+                if customer_email:
+                    subject = "Order Failed - Refund Notification - MILK&MORE"
+                    if order.payment and order.payment.razorpay_payment_status != 'Cash On Delivery':
+                        message = (
+                            f"Hi {order.customer.name},\n\n"
+                            f"Unfortunately, we couldn't deliver your order (#{order.id}) successfully. We sincerely apologize for the inconvenience.\n\n"
+                            f"Your payment has been processed online. We will refund your money back to your original payment method within 5-7 business days.\n\n"
+                            f"If you have any questions, please contact us at 9327558924 or reply to this email.\n\n"
+                            f"Thank you for your understanding.\n\n"
+                            f"Best regards,\nMILK&MORE Team"
+                        )
+                    else:
+                        message = (
+                            f"Hi {order.customer.name},\n\n"
+                            f"Unfortunately, we couldn't deliver your order (#{order.id}) successfully. We sincerely apologize for the inconvenience.\n\n"
+                            f"If you have any questions, please contact us at 9327558924 or reply to this email.\n\n"
+                            f"Thank you for your understanding.\n\n"
+                            f"Best regards,\nMILK&MORE Team"
+                        )
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    try:
+                        send_mail(subject, message, from_email, [customer_email])
+                    except Exception as e:
+                        print(f"Error sending failed delivery email: {e}")
+            
+            return JsonResponse({'status': 'success', 'message': 'Order marked as Failed Delivery. Customer notified.'})
+
+        # For other statuses, update as usual
+        for order in group_items:
+            order.status = new_status
+            if delivery_notes:
+                order.delivery_notes = delivery_notes
+            order.save()
+            if payment_collected:
+                if order.payment:
+                    order.payment.paid = True
+                    order.payment.save()
+        
+        return JsonResponse({'status': 'success', 'message': f'Order status updated to {new_status}'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 @login_required
 @user_passes_test(is_delivery_person)
@@ -1331,6 +1410,39 @@ def delivery_profile(request):
     else:
         form = DeliveryPersonProfileForm(instance=dp)
     return render(request, 'delivery/profile.html', locals())
+
+# OTP verification for delivery
+@login_required
+@user_passes_test(is_delivery_person)
+def delivery_otp_verify(request, pk):
+    dp = request.user.deliveryperson
+    order = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
+    if request.method == 'POST':
+        otp_input = request.POST.get('otp')
+        if order.delivery_otp and otp_input and otp_input == order.delivery_otp:
+            # Mark as delivered
+            order.status = 'Delivered'
+            order.delivery_otp = None
+            order.save()
+            # Send thank you/review email
+            customer_email = order.customer.user.email
+            if customer_email:
+                subject = "Order Delivered - MILK&MORE"
+                message = (
+                    "Your order has been successfully delivered! Thank you for choosing MILK&MORE.\n\n"
+                    "Please rate and review your product. If you faced any inconvenience, contact us at 9327558924 or add a complaint from your orders page."
+                )
+                from_email = settings.DEFAULT_FROM_EMAIL
+                try:
+                    send_mail(subject, message, from_email, [customer_email])
+                except Exception as e:
+                    print(f"Error sending delivery confirmation email: {e}")
+            
+            # Return JSON response for AJAX
+            return JsonResponse({'status': 'success', 'message': 'OTP verified successfully'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid OTP'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 # Admin side Delivery Person Management
 
