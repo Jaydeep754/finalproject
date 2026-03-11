@@ -7,7 +7,7 @@ django.setup()
 from django.contrib.auth.models import User
 
 user = User.objects.filter(username='milkmore').first()
-if user:
+if user: 
     print(f"User: {user.username}")
     print(f"is_staff: {user.is_staff}")
     print(f"is_superuser: {user.is_superuser}")

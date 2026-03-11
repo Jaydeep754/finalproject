@@ -13,6 +13,32 @@ from django.core.mail import send_mail
 from django.contrib.auth.decorators import user_passes_test
 # ...existing code...
 
+def get_size_multiplier(size):
+    """
+    Returns the weight/volume multiplier for a given size string.
+    Base unit is 1kg or 1L.
+    """
+    size_str = str(size).lower().replace(' ', '')
+    size_map = {
+        '500gm': 0.5, '500g': 0.5, '0.5kg': 0.5,
+        '1kg': 1.0, '1.0kg': 1.0,
+        '2kg': 2.0, '2.0kg': 2.0,
+        '500ml': 0.5, '0.5l': 0.5,
+        '1l': 1.0, '1lt': 1.0, '1.0l': 1.0,
+        '2l': 2.0, '2lt': 2.0, '2.0l': 2.0
+    }
+    
+    # Try exact match first
+    if size_str in size_map:
+        return size_map[size_str]
+        
+    # Pattern matching for more flexibility
+    for key, val in size_map.items():
+        if key in size_str:
+            return val
+            
+    return 1.0
+
 @user_passes_test(lambda u: u.is_superuser or u.is_staff)
 def admin_send_notification(request):
     customers = Customer.objects.select_related('user').all()
@@ -274,13 +300,7 @@ def add_to_cart(request):
         size = request.GET.get('size', '500gm')
     product = Product.objects.get(id=product_id)
     
-    # Baseline is 1kg/L = 1x price
-    multiplier = 1.0
-    if '500gm' in size or '500ml' in size:
-        multiplier = 0.5
-    elif '2kg' in size or '2L' in size:
-        multiplier = 2.0
-        
+    multiplier = get_size_multiplier(size)
     price = product.discounted_price * multiplier
 
     if request.user.is_authenticated:
@@ -288,10 +308,16 @@ def add_to_cart(request):
         # Check if item with SAME SIZE exists in cart
         item = Cart.objects.filter(product=product, user=user, size=size).first()
         
-        # Check if quantity requested exceeds available stock
-        current_cart_qty = item.quantity if item else 0
-        if current_cart_qty + quantity > product.quantity:
-            messages.warning(request, f"Cannot add. Only {product.quantity} unit(s) of {product.title} available in stock.")
+        # Calculate TOTAL WEIGHT of this product already in cart (across all sizes)
+        existing_items = Cart.objects.filter(product=product, user=user)
+        total_weight_in_cart = 0
+        for ei in existing_items:
+            total_weight_in_cart += ei.quantity * get_size_multiplier(ei.size)
+            
+        # Check if requested addition exceeds available stock
+        requested_weight = quantity * multiplier
+        if total_weight_in_cart + requested_weight > product.quantity:
+            messages.warning(request, f"Cannot add. Total weight ({total_weight_in_cart + requested_weight}kg/L) exceeds available stock ({product.quantity}kg/L).")
             return redirect('product-detail', pk=product_id)
             
         if item:
@@ -315,10 +341,15 @@ def add_to_cart(request):
         cart = request.session.get('cart', {})
         cart_key = f"{product_id}_{size}"
         
-        # Check if quantity requested exceeds available stock
-        current_cart_qty = cart[cart_key]['quantity'] if cart_key in cart else 0
-        if current_cart_qty + quantity > product.quantity:
-            messages.warning(request, f"Cannot add. Only {product.quantity} unit(s) of {product.title} available in stock.")
+        # Calculate TOTAL WEIGHT in session cart
+        total_weight_in_cart = 0
+        for ck, item_data in cart.items():
+            if str(item_data.get('product_id')) == str(product_id):
+                total_weight_in_cart += item_data['quantity'] * get_size_multiplier(item_data.get('size'))
+                
+        requested_weight = quantity * multiplier
+        if total_weight_in_cart + requested_weight > product.quantity:
+            messages.warning(request, f"Cannot add. Total weight ({total_weight_in_cart + requested_weight}kg/L) exceeds available stock ({product.quantity}kg/L).")
             return redirect('product-detail', pk=product_id)
             
         if cart_key in cart:
@@ -404,8 +435,16 @@ def pluscart(request):
         if request.user.is_authenticated:
             c = Cart.objects.get(Q(product=prod_id) & Q(user=request.user) & Q(size=size))
             if c.quantity < 10:
-                if c.quantity + 1 > c.product.quantity:
-                    error_msg = f"Only {c.product.quantity} unit(s) available in stock."
+                multiplier = get_size_multiplier(c.size)
+                # Calculate total weight in cart
+                existing_items = Cart.objects.filter(product=c.product, user=request.user)
+                total_weight = 0
+                for ei in existing_items:
+                    total_weight += ei.quantity * get_size_multiplier(ei.size)
+                
+                # Check if adding one more item of current size exceeds stock
+                if total_weight + multiplier > c.product.quantity:
+                    error_msg = f"Adding this exceeds available stock ({c.product.quantity}kg/L remaining)."
                 else:
                     c.quantity += 1
                     c.save()
@@ -421,8 +460,15 @@ def pluscart(request):
             if cart_key in cart:
                 p = Product.objects.get(id=prod_id)
                 if cart[cart_key]['quantity'] < 10:
-                    if cart[cart_key]['quantity'] + 1 > p.quantity:
-                        error_msg = f"Only {p.quantity} unit(s) available in stock."
+                    multiplier = get_size_multiplier(size)
+                    # Calculate total weight in session cart
+                    total_weight = 0
+                    for ck, item_data in cart.items():
+                        if str(item_data.get('product_id')) == str(prod_id):
+                            total_weight += item_data['quantity'] * get_size_multiplier(item_data.get('size'))
+                    
+                    if total_weight + multiplier > p.quantity:
+                        error_msg = f"Adding this exceeds available stock ({p.quantity}kg/L remaining)."
                     else:
                         cart[cart_key]['quantity'] += 1
                         request.session['cart'] = cart
@@ -548,9 +594,16 @@ class CheckoutView(View):
             return redirect('showcart')
             
         # Validate that cart items don't exceed available stock
+        product_totals = {}
         for item in cart_items:
-            if item.quantity > item.product.quantity:
-                messages.error(request, f"Sorry, the requested quantity for {item.product.title} exceeds our available stock ({item.product.quantity} left). Please update your cart.")
+            weight = item.quantity * get_size_multiplier(item.size)
+            if item.product.id not in product_totals:
+                product_totals[item.product.id] = {'total_weight': 0, 'product': item.product}
+            product_totals[item.product.id]['total_weight'] += weight
+        
+        for prod_id, info in product_totals.items():
+            if info['total_weight'] > info['product'].quantity:
+                messages.error(request, f"Sorry, the requested amount for {info['product'].title} ({info['total_weight']}kg/L) exceeds our available stock ({info['product'].quantity}kg/L left). Please update your cart.")
                 return redirect('showcart')
             
         famount = 0
@@ -614,7 +667,6 @@ def paymentdone(request):
 
     # to save order details
     cart = Cart.objects.filter(user=user)
-    size_map = {'500gm': 0.5, '500g': 0.5, '1kg': 1, '2kg': 2, '500ml': 0.5, '1l': 1, '1lt': 1, '2l': 2, '2lt': 2}
     product_deductions = {}
     
     # First, create OrderPlaced records and aggregate stock deductions
@@ -622,12 +674,7 @@ def paymentdone(request):
         OrderPlaced(user=user,customer=customer,product=c.product,quantity=c.quantity,size=c.size,price=c.price,payment=payment,cust_id = customer.id).save()
         
         # Calculate size multiplier
-        size_str = str(c.size).lower().replace(' ', '')
-        size_val = 1
-        for key, val in size_map.items():
-            if key in size_str:
-                size_val = val
-                break
+        size_val = get_size_multiplier(c.size)
         total_decrement = c.quantity * size_val
         
         # Aggregate deductions by product ID
@@ -672,9 +719,16 @@ def checkout_cod(request):
             return redirect('showcart')
             
         # Validate that cart items don't exceed available stock
+        product_totals = {}
         for item in cart_items:
-            if item.quantity > item.product.quantity:
-                messages.error(request, f"Sorry, the requested quantity for {item.product.title} exceeds our available stock ({item.product.quantity} left). Please update your cart.")
+            weight = item.quantity * get_size_multiplier(item.size)
+            if item.product.id not in product_totals:
+                product_totals[item.product.id] = {'total_weight': 0, 'product': item.product}
+            product_totals[item.product.id]['total_weight'] += weight
+        
+        for prod_id, info in product_totals.items():
+            if info['total_weight'] > info['product'].quantity:
+                messages.error(request, f"Sorry, the requested amount for {info['product'].title} ({info['total_weight']}kg/L) exceeds our available stock ({info['product'].quantity}kg/L left). Please update your cart.")
                 return redirect('showcart')
             
         famount = 0
@@ -695,7 +749,6 @@ def checkout_cod(request):
         payment.save()
         
         # Save order details
-        size_map = {'500gm': 0.5, '500g': 0.5, '1kg': 1, '2kg': 2, '500ml': 0.5, '1l': 1, '1lt': 1, '2l': 2, '2lt': 2}
         product_deductions = {}
         
         # First, create OrderPlaced records and aggregate stock deductions
@@ -712,12 +765,7 @@ def checkout_cod(request):
             ).save()
             
             # Calculate size multiplier
-            size_str = str(c.size).lower().replace(' ', '')
-            size_val = 1
-            for key, val in size_map.items():
-                if key in size_str:
-                    size_val = val
-                    break
+            size_val = get_size_multiplier(c.size)
             total_decrement = c.quantity * size_val
             
             # Aggregate deductions by product ID
