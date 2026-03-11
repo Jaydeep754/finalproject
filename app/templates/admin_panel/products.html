@@ -79,7 +79,13 @@
                     <td>{{ product.get_category_display }}</td>
                     <td>₹{{ product.selling_price }}</td>
                     <td class="text-success fw-bold">₹{{ product.discounted_price }}</td>
-                    <td>{{ product.quantity }}</td>
+                    <td>
+                        {% if product.category in 'MK LS BS' %}
+                            {{ product.quantity }} L
+                        {% else %}
+                            {{ product.quantity }} kg
+                        {% endif %}
+                    </td>
                     <td class="small">{{ product.expiry_date|date:"d M Y" }}</td>
                     <td>
                         <div class="d-flex gap-2">

@@ -264,9 +264,14 @@ def Logout(request):
      return redirect('home')
 
 def add_to_cart(request):
-    product_id = request.GET.get('prod_id')
-    quantity = int(request.GET.get('quantity', 1))
-    size = request.GET.get('size', '500gm')
+    if request.method == 'POST':
+        product_id = request.POST.get('prod_id')
+        quantity = int(request.POST.get('quantity', 1))
+        size = request.POST.get('size', '500gm')
+    else:
+        product_id = request.GET.get('prod_id')
+        quantity = int(request.GET.get('quantity', 1))
+        size = request.GET.get('size', '500gm')
     product = Product.objects.get(id=product_id)
     
     # Baseline is 1kg/L = 1x price
@@ -337,7 +342,9 @@ def add_to_cart(request):
             }
         request.session['cart'] = cart
         
-    if request.GET.get('buy_now'):
+    # Check for buy_now in both POST and GET for compatibility
+    buy_now = request.POST.get('buy_now') or request.GET.get('buy_now')
+    if buy_now:
         return redirect('checkout')
         
     return redirect('showcart')
@@ -351,39 +358,35 @@ def showcart(request):
     if request.user.is_authenticated:
         user = request.user
         cart_items = Cart.objects.filter(user=user)
-        for p in cart_items:
-            amount += p.total_cost
-            cart.append(p)
+        for c in cart_items:
+            amount += c.quantity * c.price
+            cart.append({
+                'product': c.product,
+                'quantity': c.quantity,
+                'size': c.size,
+                'price': c.price,
+                'total_cost': c.quantity * c.price
+            })
     else:
-        # Get items from session for visitors
+        # Session-based cart for guests
         session_cart = request.session.get('cart', {})
         for cart_key, item_data in session_cart.items():
             try:
-                if isinstance(item_data, dict):
-                    prod_id = item_data['product_id']
-                    quantity = item_data['quantity']
-                    size = item_data['size']
-                    price = item_data['price']
-                else:
-                    # Compatibility
-                    prod_id = cart_key
-                    quantity = item_data
-                    size = "500gm"
-                    product = Product.objects.get(id=prod_id)
-                    price = product.discounted_price
-
+                prod_id = item_data['product_id']
+                quantity = item_data['quantity']
+                size = item_data['size']
+                price = item_data['price']
                 product = Product.objects.get(id=prod_id)
                 cart.append({
-                    'product': product, 
-                    'quantity': quantity, 
-                    'size': size, 
+                    'product': product,
+                    'quantity': quantity,
+                    'size': size,
                     'price': price,
                     'total_cost': quantity * price
                 })
                 amount += quantity * price
             except Product.DoesNotExist:
                 continue
-                
                 
     shipping_fee = 0 if amount >= 500 else (40 if amount > 0 else 0)
     totalamount = amount + shipping_fee
@@ -611,20 +614,38 @@ def paymentdone(request):
 
     # to save order details
     cart = Cart.objects.filter(user=user)
+    size_map = {'500gm': 0.5, '500g': 0.5, '1kg': 1, '2kg': 2, '500ml': 0.5, '1l': 1, '1lt': 1, '2l': 2, '2lt': 2}
+    product_deductions = {}
+    
+    # First, create OrderPlaced records and aggregate stock deductions
     for c in cart:
         OrderPlaced(user=user,customer=customer,product=c.product,quantity=c.quantity,size=c.size,price=c.price,payment=payment,cust_id = customer.id).save()
         
-        # Deduct quantity from product stock
-        product = c.product
-        if product.quantity >= c.quantity:
-            product.quantity -= c.quantity
-            product.save()
-        else:
-            # If stock is low, still deduct (or you could set to 0)
-            product.quantity = 0
-            product.save()
-            
+        # Calculate size multiplier
+        size_str = str(c.size).lower().replace(' ', '')
+        size_val = 1
+        for key, val in size_map.items():
+            if key in size_str:
+                size_val = val
+                break
+        total_decrement = c.quantity * size_val
+        
+        # Aggregate deductions by product ID
+        if c.product.id not in product_deductions:
+            product_deductions[c.product.id] = {'product': c.product, 'deduct': 0}
+        product_deductions[c.product.id]['deduct'] += total_decrement
         c.delete()
+    
+    # Now deduct stock for each product only once
+    for prod_info in product_deductions.values():
+        product = prod_info['product']
+        total_decrement = prod_info['deduct']
+        if product.quantity >= total_decrement:
+            product.quantity -= total_decrement
+        else:
+            product.quantity = 0
+        product.save()
+    
     return redirect('orders')
 
 @login_required
@@ -674,6 +695,10 @@ def checkout_cod(request):
         payment.save()
         
         # Save order details
+        size_map = {'500gm': 0.5, '500g': 0.5, '1kg': 1, '2kg': 2, '500ml': 0.5, '1l': 1, '1lt': 1, '2l': 2, '2lt': 2}
+        product_deductions = {}
+        
+        # First, create OrderPlaced records and aggregate stock deductions
         for c in cart_items:
             OrderPlaced(
                 user=user,
@@ -686,15 +711,30 @@ def checkout_cod(request):
                 cust_id=customer.id
             ).save()
             
-            # Deduct stock
-            product = c.product
-            if product.quantity >= c.quantity:
-                product.quantity -= c.quantity
+            # Calculate size multiplier
+            size_str = str(c.size).lower().replace(' ', '')
+            size_val = 1
+            for key, val in size_map.items():
+                if key in size_str:
+                    size_val = val
+                    break
+            total_decrement = c.quantity * size_val
+            
+            # Aggregate deductions by product ID
+            if c.product.id not in product_deductions:
+                product_deductions[c.product.id] = {'product': c.product, 'deduct': 0}
+            product_deductions[c.product.id]['deduct'] += total_decrement
+            c.delete()
+        
+        # Now deduct stock for each product only once
+        for prod_info in product_deductions.values():
+            product = prod_info['product']
+            total_decrement = prod_info['deduct']
+            if product.quantity >= total_decrement:
+                product.quantity -= total_decrement
             else:
                 product.quantity = 0
             product.save()
-            
-            c.delete()
             
         messages.success(request, "Order placed successfully! Please keep cash ready for delivery.")
         return redirect('orders')

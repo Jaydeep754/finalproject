@@ -19,7 +19,7 @@ class Product(models.Model):
     prodapp = models.TextField(default='')
     category = models.CharField(choices=CATEGORY_CHOICES, max_length=2)
     product_image = models.ImageField(upload_to='product',null=True)
-    quantity = models.IntegerField(default=10) # Available stock
+    quantity = models.FloatField(default=10) # Available stock in kg/liters
     expiry_date = models.DateField(null=True, blank=True)
 
     def __str__(self) -> str:
