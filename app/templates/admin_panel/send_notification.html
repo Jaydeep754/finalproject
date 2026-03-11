@@ -1,0 +1,61 @@
+{% extends 'admin_panel/base.html' %}
+{% block title %}Send Notification - Admin Panel{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Send Notification to Customers</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="subject" class="form-label">Subject</label>
+            <input type="text" class="form-control" id="subject" name="subject" required>
+        </div>
+        <div class="mb-3">
+            <label for="reason" class="form-label">Reason/Message</label>
+            <textarea class="form-control" id="reason" name="reason" rows="5" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Select Customers (leave blank to send to all):</label>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="selectAllCustomers">
+                <label class="form-check-label fw-bold" for="selectAllCustomers">Select All</label>
+            </div>
+            <div id="customer-list" style="max-height: 250px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fafbfc;">
+                {% for customer in customers %}
+                    <div class="form-check mb-1">
+                        <input class="form-check-input customer-checkbox" type="checkbox" name="customer_ids" value="{{ customer.id }}" id="customer{{ customer.id }}">
+                        <label class="form-check-label" for="customer{{ customer.id }}">
+                            <strong>{{ customer.name }}</strong> ({{ customer.user.email }})<br>
+                            <small>{{ customer.city }}, {{ customer.state }} | {{ customer.mobile }}</small>
+                        </label>
+                    </div>
+                {% empty %}
+                    <div>No customers found.</div>
+                {% endfor %}
+            </div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAll = document.getElementById('selectAllCustomers');
+            const checkboxes = document.querySelectorAll('.customer-checkbox');
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            });
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    if (!cb.checked) selectAll.checked = false;
+                    else if ([...checkboxes].every(c => c.checked)) selectAll.checked = true;
+                });
+            });
+        });
+        </script>
+        <button type="submit" class="btn btn-success">Send Notification</button>
+    </form>
+    {% if messages %}
+        <ul class="mt-3">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+{% endblock %}

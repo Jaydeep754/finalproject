@@ -52,6 +52,12 @@
     {% endif %}
   </div>
 
+  {% if show_restricted_overlay %}
+  <div class="regional-notice py-2 text-center small text-white fw-bold d-none d-lg-block" style="background: var(--primary); font-family: 'Outfit';">
+      <i class="bi bi-geo-alt-fill me-2"></i> Milk & More heritage currently serving exclusively in Ahmedabad. Expansion in progress!
+  </div>
+  {% endif %}
+
   {% if request.resolver_match.url_name != 'login' %}
   <!-- Top Utility Bar -->
   <div class="top-utility-bar d-none d-lg-block">
@@ -173,6 +179,13 @@
       </div>
     </div>
   </nav>
+  <div class="container-fluid mt-2 mb-2">
+    <div class="row">
+      <div class="col text-end">
+        <span id="realtime-datetime" class="text-muted small"></span>
+      </div>
+    </div>
+  </div>
   {% endif %}
 
   <main class="{% if request.resolver_match.url_name == 'login' %}login-page-wrapper{% endif %}">
@@ -281,6 +294,16 @@
   <script src="{% static 'js/all.min.js' %}"></script>
   <script src="{% static 'js/m.js' %}"></script>
   <script src="{% static 'js/owl.carousel.min.js' %}"></script>
+<script>
+// Real-time date and time display
+function updateDateTime() {
+  const now = new Date();
+  const options = { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+  document.getElementById('realtime-datetime').textContent = now.toLocaleString('en-IN', options);
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+</script>
 </body>
 
 </html>

@@ -9,8 +9,37 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
 from django.conf import settings
+from django.core.mail import send_mail
+from django.contrib.auth.decorators import user_passes_test
+# ...existing code...
+
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+def admin_send_notification(request):
+    customers = Customer.objects.select_related('user').all()
+    if request.method == 'POST':
+        subject = request.POST.get('subject')
+        reason = request.POST.get('reason')
+        selected_ids = request.POST.getlist('customer_ids')
+        if selected_ids:
+            selected_customers = customers.filter(id__in=selected_ids)
+            emails = [c.user.email for c in selected_customers if c.user.email]
+        else:
+            emails = [c.user.email for c in customers if c.user.email]
+        from_email = settings.DEFAULT_FROM_EMAIL
+        if emails:
+            try:
+                send_mail(subject, reason, from_email, emails)
+                messages.success(request, f'Notification sent to {len(emails)} customer(s).')
+            except Exception as e:
+                messages.error(request, f'Error sending notification: {e}')
+        else:
+            messages.error(request, 'No customer emails found.')
+        return render(request, 'admin_panel/send_notification.html', {'customers': customers})
+    return render(request, 'admin_panel/send_notification.html', {'customers': customers})
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from django.utils import timezone
+from datetime import datetime, timedelta
 
 # For PDF Generation
 from django.template.loader import get_template
@@ -502,9 +531,13 @@ class CheckoutView(View):
             
         cartitem = cart_num(request)
         user = request.user
-        add = Customer.objects.filter(user=user)
+        add = Customer.objects.filter(user=user, city__iexact='Ahmedabad')
         if not add.exists():
-            messages.warning(request, "Please add a shipping address before proceeding to checkout.")
+            all_addresses = Customer.objects.filter(user=user)
+            if all_addresses.exists():
+                messages.warning(request, "Currently, we only deliver to Ahmedabad. We're coming soon to your city!")
+            else:
+                messages.warning(request, "Please add a shipping address in Ahmedabad to proceed.")
             return redirect('profile')
         cart_items = Cart.objects.filter(user=user)
         
@@ -563,6 +596,10 @@ def paymentdone(request):
         messages.error(request, "Delivery information missing. Please contact support.")
         return redirect('orders')
     customer = Customer.objects.get(id=cust_id)
+    
+    if customer.city.lower() != 'ahmedabad':
+        messages.error(request, "We currently only accept orders from Ahmedabad. Coming soon to other cities!")
+        return redirect('showcart')
 
     # To update payment status and payment id 
     payment =Payment.objects.get(razorpay_order_id=order_id)
@@ -601,6 +638,9 @@ def checkout_cod(request):
         
         try:
             customer = Customer.objects.get(id=cust_id, user=user)
+            if customer.city.lower() != 'ahmedabad':
+                messages.warning(request, "Currently, we only deliver to Ahmedabad. We're coming soon to your city!")
+                return redirect('checkout')
         except Customer.DoesNotExist:
             messages.error(request, "Invalid address selected.")
             return redirect('checkout')
@@ -710,12 +750,20 @@ def get_grouped_orders(queryset):
                 'ordered_date': item.ordered_date,
                 'customer': item.customer,
                 'total_amount': 0,
+                'earning': 0,
                 'delivery_person': item.delivery_person,
                 'first_item_id': item.id,
                 'user': item.user
             }
         grouped_orders[key]['items'].append(item)
         grouped_orders[key]['total_amount'] += item.total_cost
+    
+    # Finalize calculations for each group
+    for group in grouped_orders.values():
+        total = group['total_amount']
+        # Calculation: 30 base + 5% of total
+        group['earning'] = round(30 + (total * 0.05), 2)
+        
     return list(grouped_orders.values())
 
 def is_admin(user):
@@ -1130,9 +1178,25 @@ def delivery_dashboard(request):
     completed_deliveries = len([g for g in assigned_groups if g['status'] == 'Delivered'])
     failed_deliveries = len([g for g in assigned_groups if g['status'] == 'Failed Delivery'])
     
-    # COD Summary
-    cod_orders = assigned_orders_queryset.filter(payment__razorpay_payment_status='Cash On Delivery', status='Delivered')
-    total_cod_collected = sum(order.total_cost for order in cod_orders)
+    # Personal Earnings breakdown
+    completed_delivery_groups = [g for g in assigned_groups if g['status'] == 'Delivered']
+    COMMISSION_PER_DELIVERY = 50
+    
+    # Time-based breakdown
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    today_delivery_groups = [g for g in completed_delivery_groups if g['ordered_date'] >= today_start]
+    month_delivery_groups = [g for g in completed_delivery_groups if g['ordered_date'] >= month_start]
+    
+    today_earnings = sum(g['earning'] for g in today_delivery_groups)
+    month_earnings = sum(g['earning'] for g in month_delivery_groups)
+    total_earnings = sum(g['earning'] for g in completed_delivery_groups)
+    
+    # COD Collection breakdown
+    cod_delivery_groups = [g for g in completed_delivery_groups if g['payment'] and g['payment'].razorpay_payment_status == 'Cash On Delivery']
+    total_cod_collected = sum(g['total_amount'] for g in cod_delivery_groups)
     
     return render(request, 'delivery/dashboard.html', locals())
 
@@ -1173,6 +1237,8 @@ def delivery_order_detail(request, pk):
         group_items = [order]
         total_group_amount = order.total_cost
         order_id_display = f"ORD{order.id:05d}"
+    # Calculate Dynamic Earning: 30 + 5% of total
+    group_earning = round(30 + (total_group_amount * 0.05), 2)
         
     form = DeliveryStatusForm(instance=order)
     return render(request, 'delivery/order_detail.html', locals())
@@ -1231,7 +1297,32 @@ def delivery_profile(request):
 @user_passes_test(is_admin)
 def admin_delivery_persons(request):
     delivery_persons = DeliveryPerson.objects.all()
+    
+    # Enrich delivery persons with financial data
+    for dp in delivery_persons:
+        assigned_orders = OrderPlaced.objects.filter(delivery_person=dp).select_related('payment', 'product', 'customer').order_by('-ordered_date')
+        grouped_orders = get_grouped_orders(assigned_orders)
+        
+        # Calculate totals only for Delivered groups
+        dp.delivered_groups = [g for g in grouped_orders if g['status'] == 'Delivered']
+        dp.total_earning = sum(g['earning'] for g in dp.delivered_groups)
+        dp.total_collection = sum(g['total_amount'] for g in dp.delivered_groups if g['payment'] and g['payment'].razorpay_payment_status == 'Cash On Delivery')
+        dp.completed_tasks = len(dp.delivered_groups)
+        
     return render(request, 'admin_panel/delivery_persons.html', locals())
+
+@user_passes_test(is_admin)
+def admin_delivery_person_orders(request, pk):
+    dp = DeliveryPerson.objects.get(pk=pk)
+    # Get all delivered orders for this person
+    assigned_orders = OrderPlaced.objects.filter(delivery_person=dp, status='Delivered').select_related('product', 'payment', 'customer').order_by('-ordered_date')
+    order_groups = get_grouped_orders(assigned_orders)
+    
+    # Calculate totals for this specific view summary
+    total_earnings = sum(g['earning'] for g in order_groups)
+    total_collection = sum(g['total_amount'] for g in order_groups if g['payment'] and g['payment'].razorpay_payment_status == 'Cash On Delivery')
+    
+    return render(request, 'admin_panel/delivery_person_orders.html', locals())
 
 @user_passes_test(is_admin)
 def admin_add_delivery_person(request):
