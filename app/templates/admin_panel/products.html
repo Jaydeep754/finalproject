@@ -5,12 +5,46 @@
 {% block page_title %}Manage Products{% endblock %}
 
 {% block content %}
-<div class="glass-card mb-4">
+<div class="glass-card mb-4 animate-fade-in">
+    <!-- Product Search Console -->
+    <div class="search-console-wrapper mb-4 p-4 rounded-4" 
+         style="background: linear-gradient(135deg, rgba(30, 64, 175, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%); border: 1px solid rgba(59, 130, 246, 0.1);">
+        <div class="row align-items-center g-3">
+            <div class="col-md-8">
+                <form action="" method="GET" autocomplete="off" class="m-0">
+                    <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border p-1" style="transition: all 0.3s ease;">
+                        <span class="input-group-text bg-transparent border-0 ps-3 pe-2">
+                            <i class="fa-solid fa-magnifying-glass text-primary opacity-75"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control border-0 shadow-none px-2" 
+                               placeholder="Find product by name, category or composition..." 
+                               value="{{ request.GET.q|default:'' }}"
+                               style="height: 45px; font-weight: 500;">
+                        {% if request.GET.q %}
+                        <a href="{% url 'admin-products' %}" class="btn btn-link text-muted d-flex align-items-center me-2"><i class="fa-solid fa-circle-xmark"></i></a>
+                        {% endif %}
+                        <button class="btn btn-primary rounded-pill px-4 fw-bold" type="submit">FIND</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'admin-add-product' %}" class="btn btn-premium rounded-pill px-4">
+                    <i class="fa-solid fa-plus me-2"></i> Add New Product
+                </a>
+            </div>
+        </div>
+        {% if request.GET.q %}
+        <div class="mt-3 px-2">
+            <span class="badge bg-primary rounded-pill px-3 py-2 small fw-bold shadow-sm">
+                <i class="fa-solid fa-filter me-1"></i> {{ products|length }} Match{{ products|length|pluralize:"es" }} Found
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="fw-bold mb-0">All Products ({{ products.count }})</h5>
-        <a href="{% url 'admin-add-product' %}" class="btn btn-premium">
-            <i class="fa-solid fa-plus me-2"></i> Add New Product
-        </a>
+        <h5 class="fw-bold mb-0">Product Catalog</h5>
+        <div class="text-muted small">Total entries: {{ products|length }}</div>
     </div>
 
     <div class="table-responsive">
