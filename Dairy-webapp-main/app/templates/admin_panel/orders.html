@@ -1,0 +1,255 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Manage Orders - Milk & More Admin{% endblock %}
+{% block page_title %}Order Management Console{% endblock %}
+
+{% block content %}
+<div class="glass-card p-4 animate-fade-in">
+    <!-- Refined Order Intelligence Console -->
+    <div class="search-console-wrapper mb-5 py-5 px-4 rounded-4 position-relative overflow-hidden" 
+         style="background: linear-gradient(135deg, rgba(30, 64, 175, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%); border: 1px solid rgba(59, 130, 246, 0.15); backdrop-filter: blur(5px);">
+        
+        <div class="text-center mb-4 position-relative" style="z-index: 2;">
+            <h2 class="fw-bold text-dark mb-2" style="letter-spacing: -1.5px; font-family: 'Outfit', sans-serif;">Order Intelligence</h2>
+            <div class="d-inline-flex align-items-center px-4 py-2 rounded-pill bg-white shadow-sm border small text-muted">
+                <i class="fa-solid fa-bolt-lightning text-warning me-2 animate-pulse"></i>
+                <span class="fw-semibold">Real-time inventory & delivery ecosystem</span>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center position-relative" style="z-index: 2;">
+            <div class="col-md-11 col-lg-9">
+                <div class="search-glass p-2 rounded-pill shadow-lg bg-white border border-light d-flex align-items-center" 
+                     style="transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); height: 80px;">
+                    <form action="" method="GET" class="w-100 m-0" autocomplete="off">
+                        <div class="row g-0 align-items-center">
+                            <div class="col-auto ps-4 pe-2 border-end border-light">
+                                <i class="fa-solid fa-search text-primary fs-4 opacity-75"></i>
+                            </div>
+                            <div class="col">
+                                <input type="text" name="q" class="form-control border-0 bg-transparent shadow-none px-4" 
+                                       placeholder="Search by Order ID, Transaction ID, Customer Name, Mobile, or Product..." 
+                                       value="{{ request.GET.q|default:'' }}"
+                                       style="height: 60px; font-size: 1.15rem; font-weight: 500;">
+                            </div>
+                            <div class="col-auto pe-2 d-flex align-items-center gap-3">
+                                {% if request.GET.q %}
+                                <a href="{% url 'admin-orders' %}" class="btn btn-link text-secondary text-decoration-none px-3 fw-bold small" style="letter-spacing: 1px;">
+                                    RESET
+                                </a>
+                                {% endif %}
+                                <button class="btn btn-dark rounded-pill px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center" type="submit" 
+                                        style="background: #0f172a; height: 60px; min-width: 180px; transition: 0.3s transform;">
+                                    <i class="fa-solid fa-fingerprint me-2 fs-5"></i> SCAN DATA
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                {% if request.GET.q %}
+                <div class="text-center mt-4">
+                    <span class="text-muted small me-2 font-monospace fw-bold">ENCRYPTED QUERY MATCH:</span>
+                    <span class="badge bg-primary rounded-pill px-4 py-2 border-0 shadow-sm" style="font-size: 0.95rem; font-family: 'Outfit';">
+                        {{ order_groups|length }} Active Transaction{{ order_groups|length|pluralize }} Identified
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Animated Background Elements -->
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 1; pointer-events: none;">
+            <div class="position-absolute opacity-25" style="top: -20%; left: -10%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%);"></div>
+            <div class="position-absolute opacity-25" style="bottom: -20%; right: -10%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(30, 64, 175, 0.4) 0%, transparent 70%);"></div>
+        </div>
+    </div>
+
+    <style>
+        .search-glass:focus-within {
+            transform: translateY(-4px);
+            box-shadow: 0 30px 60px -12px rgba(59, 130, 246, 0.3) !important;
+            border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+        .search-glass input::placeholder {
+            color: #bbc7d9;
+            font-weight: 500;
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+
+    <div class="row g-4">
+        {% for group in order_groups %}
+        <div class="col-12" data-aos="fade-up">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden order-group-card" style="transition: all 0.3s ease;">
+                <!-- Group Header -->
+                <div class="card-header border-bottom p-4" style="background: rgba(255,255,255,0.7); backdrop-filter: blur(5px);">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge text-white rounded-pill px-3 py-2 fw-bold" style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); font-size: 0.85rem;">
+                                    ORDER #{{group.id}}
+                                </span>
+                                <span class="text-muted small"><i class="fa-solid fa-calendar-days me-1"></i> {{group.ordered_date|date:"d M Y, H:i"}}</span>
+                                {% if group.payment and group.payment.razorpay_payment_status == 'Cash On Delivery' %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">COD</span>
+                                {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success px-2 py-1">ONLINE / PAID</span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-3">
+                                <div class="fw-bold text-dark fs-5" style="letter-spacing: -0.5px;">{{group.customer.name}}</div>
+                                <div class="text-muted small font-monospace"><i class="fa-solid fa-phone me-1"></i>{{group.customer.mobile}}</div>
+                                <div class="small text-secondary mt-1">
+                                    <i class="fa-solid fa-location-dot me-1 text-primary"></i> {{group.customer.locality}}, {{group.customer.city}}, {{group.customer.zipcode}}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <div class="d-flex flex-column align-items-md-end gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="small fw-bold text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">Current Journey</span>
+                                    <span class="status-badge fs-6 {% if group.status == 'Pending' %}status-pending{% elif group.status == 'Delivered' %}status-delivered{% elif group.status == 'Failed Delivery' %}status-failed-delivery{% elif group.status == 'Cancel' %}bg-secondary text-white{% else %}status-shipped{% endif %}">
+                                        {{ group.status }}
+                                    </span>
+                                </div>
+                                <div class="update-action-box p-2 rounded-4 bg-light border">
+                                    <form action="{% url 'admin-update-order' group.first_item_id %}" method="POST" class="d-flex gap-2">
+                                        {% csrf_token %}
+                                        <select name="status" class="form-select form-select-sm border-0 bg-white shadow-sm" style="width: 150px; border-radius: 12px;" {% if group.status == 'Delivered' or group.status == 'Failed Delivery' %}disabled{% endif %}>
+                                            <option value="Pending" {% if group.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                            <option value="Accepted" {% if group.status == 'Accepted' %}selected{% endif %}>Accepted</option>
+                                            <option value="Packed" {% if group.status == 'Packed' %}selected{% endif %}>Packed</option>
+                                            <option value="Assigned" {% if group.status == 'Assigned' %}selected{% endif %}>Assigned</option>
+                                            <option value="Cancel" {% if group.status == 'Cancel' %}selected{% endif %}>Cancel</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-none" {% if group.status == 'Delivered' or group.status == 'Failed Delivery' %}disabled{% endif %}>Update</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group Items -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="bg-primary bg-opacity-10 text-primary">
+                                <tr class="small fw-bold text-uppercase" style="font-size: 0.75rem;">
+                                    <th class="ps-4 py-3">Selection</th>
+                                    <th class="py-3 text-center">Volume</th>
+                                    <th class="py-3 text-center">Units</th>
+                                    <th class="py-3">Price</th>
+                                    <th class="text-end pe-4 py-3">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in group.items %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="product-thumb rounded-3 shadow-sm border p-1 bg-white" style="width: 48px; height: 48px;">
+                                                <img src="{{item.product.product_image.url}}" class="w-100 h-100 object-fit-cover rounded-2">
+                                            </div>
+                                            <span class="fw-bold text-dark">{{item.product.title}}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">{{item.size}}</span></td>
+                                    <td class="text-center fw-bold">{{item.quantity}}</td>
+                                    <td class="text-muted">₹{{item.price}}</td>
+                                    <td class="text-end pe-4 fw-bold text-primary">₹{{item.total_cost}}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Group Footer -->
+                <div class="card-footer bg-white p-4 border-top-0">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            {% if group.delivery_person %}
+                            <div class="d-flex align-items-center gap-3 py-2 px-3 rounded-4 border bg-primary bg-opacity-10 text-primary shadow-sm" style="width: fit-content;">
+                                <div class="bg-primary text-white p-2 rounded-circle" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-truck-fast"></i>
+                                </div>
+                                <div>
+                                    <div class="small fw-bold text-uppercase opacity-75" style="font-size: 0.6rem;">Delivery Partner</div>
+                                    <div class="fw-bold">{{group.delivery_person.name}}</div>
+                                </div>
+                                {% if group.status != 'Delivered' and group.status != 'Failed Delivery' %}
+                                    <a href="{% url 'admin-assign-order' group.first_item_id %}" class="btn btn-sm btn-link text-primary text-decoration-none fw-bold ms-2 border-start ps-3">CHANGE</a>
+                                {% else %}
+                                    <button class="btn btn-sm btn-link text-secondary fw-bold ms-2 border-start ps-3" disabled>CHANGE</button>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            {% if group.status != 'Delivered' and group.status != 'Failed Delivery' %}
+                                <a href="{% url 'admin-assign-order' group.first_item_id %}" class="btn btn-sm btn-warning rounded-pill px-4 text-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-user-plus"></i> ASSIGN DELIVERY STAFF
+                                </a>
+                            {% else %}
+                                <button class="btn btn-sm btn-warning rounded-pill px-4 text-dark fw-bold shadow-sm d-inline-flex align-items-center gap-2" disabled>
+                                    <i class="fa-solid fa-user-plus"></i> ASSIGN DELIVERY STAFF
+                                </button>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <div class="mb-3">
+                                <span class="text-muted small text-uppercase fw-bold me-2">Total Collection:</span>
+                                <span class="fw-bold fs-3 text-dark">₹{{group.total_amount}}</span>
+                            </div>
+                            <div class="d-flex flex-wrap justify-content-md-end gap-2 text-md-end">
+                                {% if group.payment %}
+                                <a href="{% url 'download-invoice' group.payment.id %}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-4 fw-bold">
+                                    <i class="fa-solid fa-file-pdf me-2"></i>INVOICE
+                                </a>
+                                {% endif %}
+                                {% if group.status == 'Pending' %}
+                                <form action="{% url 'admin-update-order' group.first_item_id %}" method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="Accepted">
+                                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-sm">ACCEPT ALL</button>
+                                </form>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted bg-light rounded-4 border border-dashed" style="border-width: 2px;">
+            <i class="fa-solid fa-radar d-block fs-1 mb-3 opacity-25"></i>
+            <h5 class="fw-bold">No Records Found</h5>
+            <p class="small mb-0">Try adjusting your search criteria or scanning for all orders.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .order-group-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    }
+    .update-action-box:focus-within {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+    }
+    .object-fit-cover {
+        object-fit: cover;
+    }
+</style>
+{% endblock %}

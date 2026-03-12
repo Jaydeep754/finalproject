@@ -1,0 +1,5 @@
+make this changes in website
+-admin panel should work properly 
+	-we can add,update delete product through admin dashboard so we don't need to use backend database just change from admin dash 		 board.
+	-when user order the product in admin panels order dash board there should be functionality of confirm and deliver product and 		when admin click on it users profile should shoe that product is delivered.
+	-admin should also be capable of insert update or delete the customer detils.

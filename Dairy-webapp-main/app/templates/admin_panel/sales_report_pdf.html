@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #059669;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            color: #059669;
+            margin: 0;
+            font-size: 28px;
+        }
+        .header .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .header .period {
+            background-color: #f3f4f6;
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 20px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #1f2937;
+        }
+        .stats-table {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+        .stats-table td {
+            width: 25%;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #059669;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11px;
+        }
+        .data-table th {
+            background-color: #f9fafb;
+            font-weight: bold;
+            color: #374151;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        .data-table .total-row {
+            background-color: #f0fdf4;
+            font-weight: bold;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .payment-split {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .payment-split td {
+            width: 50%;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Milk & More</h1>
+        <div class="subtitle">Sales Report</div>
+        <div class="period">{{ period_label }}</div>
+    </div>
+
+    <!-- Summary Stats -->
+    <table class="stats-table">
+        <tr>
+            <td>
+                <div class="stat-value">Rs. {{ total_revenue }}</div>
+                <div class="stat-label">Total Revenue</div>
+            </td>
+            <td>
+                <div class="stat-value">{{ total_orders_count }}</div>
+                <div class="stat-label">Total Orders</div>
+            </td>
+            <td>
+                <div class="stat-value">Rs. {{ avg_order_value }}</div>
+                <div class="stat-label">Avg. Order Value</div>
+            </td>
+            <td>
+                <div class="stat-value">{{ total_items_sold }}</div>
+                <div class="stat-label">Items Sold</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Payment Method Split -->
+    <div class="section-title">Payment Method Breakdown</div>
+    <table class="payment-split">
+        <tr>
+            <td style="background-color: #fffbeb;">
+                <strong style="color: #d97706;">Cash On Delivery</strong><br>
+                <span style="font-size: 18px; font-weight: bold;">Rs. {{ cod_revenue }}</span>
+            </td>
+            <td style="background-color: #f0fdf4;">
+                <strong style="color: #059669;">Online Payment</strong><br>
+                <span style="font-size: 18px; font-weight: bold;">Rs. {{ online_revenue }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Top Selling Products -->
+    {% if top_products %}
+    <div class="section-title">Top Selling Products</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th class="text-center">Weight Sold</th>
+                <th class="text-right">Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in top_products %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ p.product__title }}</td>
+                <td class="text-center">{{ p.qty_sold }} {{ p.unit }}</td>
+                <td class="text-right">Rs. {{ p.revenue }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Category Breakdown -->
+    {% if category_sales %}
+    <div class="section-title">Category Breakdown</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th class="text-center">Weight Sold</th>
+                <th class="text-right">Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cat in category_sales %}
+            <tr>
+                <td>{{ cat.category_name }}</td>
+                <td class="text-center">{{ cat.qty_sold }} {{ cat.unit }}</td>
+                <td class="text-right">Rs. {{ cat.revenue }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- All Delivered Orders -->
+    {% if order_groups %}
+    <div class="section-title">Order Details ({{ order_groups|length }} Orders)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Products</th>
+                <th>Payment</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in order_groups %}
+            <tr>
+                <td>#{{ group.id }}</td>
+                <td>{{ group.customer.name }}</td>
+                <td>{{ group.ordered_date|date:"d M Y" }}</td>
+                <td>
+                    {% for item in group.items %}
+                    {{ item.product.title }} ({{ item.size }}×{{ item.quantity }}){% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </td>
+                <td>{% if group.payment.razorpay_payment_status == 'Cash On Delivery' %}COD{% else %}Online{% endif %}</td>
+                <td class="text-right">Rs. {{ group.total_amount }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="5" class="text-right"><strong>GRAND TOTAL</strong></td>
+                <td class="text-right"><strong>Rs. {{ total_revenue }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated on {{ report_generated_at|date:"d F Y, H:i" }} | Milk & More - Premium Dairy Selections</p>
+        <p>This is a system-generated report. For queries, please contact the administrator.</p>
+    </div>
+
+</body>
+</html>
