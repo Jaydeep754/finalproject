@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% load static %}
+{% block main %}
+<div class="category-hero py-5 mb-5"
+    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);">
+    <div class="container py-4 text-center">
+        <h1 class="display-4 fw-bold text-white mb-3" data-aos="zoom-in"
+            style="font-family: 'Outfit', sans-serif; letter-spacing: -1px;">
+            Finalize Acquisition
+        </h1>
+        <p class="text-white-50 lead mx-auto" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
+            Review your collection and secure your order with our encrypted payment gateway.
+        </p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-5">
+        <!-- Order Summary -->
+        <div class="col-lg-7">
+            <h4 class="fw-bold mb-4 text-primary d-flex align-items-center">
+                <i class="bi bi-box-seam me-3"></i> Order Summary
+            </h4>
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 text-dark">
+                <div class="card-body p-0">
+                    {% for item in cart_items %}
+                    <div class="d-flex align-items-center p-4 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="bg-light rounded-4 p-2 me-4" style="width: 80px; height: 80px;">
+                            <img src="{{item.product.product_image.url}}"
+                                class="img-fluid h-100 w-100 object-fit-contain" alt="">
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-1">{{item.product.title}}
+                                <span class="badge bg-light text-primary border border-primary ms-2 shadow-sm"
+                                    style="font-size: 0.6rem;">{{item.size}}</span>
+                            </h6>
+                            <p class="text-muted small mb-0">Quantity: {{item.quantity}}</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="fw-bold text-primary">₹{{item.price}}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="alert alert-info border-0 rounded-4 p-4 shadow-sm" role="alert">
+                <div class="d-flex gap-3">
+                    <i class="bi bi-shield-check fs-3"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Secure Transaction</h6>
+                        <p class="small mb-0 opacity-75">Your payment is encrypted and processed securely via Razorpay.
+                            We do not store your card details.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shipping & Payment -->
+        <div class="col-lg-5">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                    style="width: 32px; height: 32px; font-size: 0.8rem;">1</div>
+                <h4 class="fw-bold text-primary d-flex align-items-center justify-content-between flex-grow-1 mb-0">
+                    <span>Delivery Address</span>
+                    <span class="badge bg-danger-subtle text-danger border-0 fw-bold small" style="font-size: 0.65rem;">
+                        <i class="bi bi-asterisk me-1"></i>MANDATORY
+                    </span>
+                </h4>
+            </div>
+            <form method="post" id="myform">
+                {% csrf_token %}
+                <div class="row g-3 mb-5">
+                    {% for ad in add %}
+                    <div class="col-12">
+                        <div class="address-selector card border-0 shadow-sm rounded-4 p-4 transition-all text-dark">
+                            <div class="form-check">
+                                <input class="form-check-input shadow-none" type="radio" name="custid"
+                                    id="custadd{{forloop.counter}}" value="{{ad.id}}" required>
+                                <label class="form-check-label w-100 ms-2" for="custadd{{forloop.counter}}">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="fw-bold mb-1">{{ad.name}}</h6>
+                                        <span class="badge bg-light text-primary rounded-pill">Address
+                                            {{forloop.counter}}</span>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ad.locality}}, {{ad.city}}, {{ad.state}} -
+                                        {{ad.zipcode}}</p>
+                                    <p class="text-muted small mb-0 mt-2"><i class="bi bi-telephone me-1"></i>
+                                        {{ad.mobile}}</p>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div
+                        class="col-12 text-center py-5 bg-light rounded-4 shadow-sm border border-dashed border-primary">
+                        <i class="bi bi-geo-alt-fill fs-1 text-primary mb-3"></i>
+                        <h6 class="fw-bold mb-2">No Shipping Address Found</h6>
+                        <p class="text-muted mb-4 small">You need to provide a delivery address before you can secure
+                            your acquisition.</p>
+                        <a href="{% url 'profile' %}" class="btn btn-primary rounded-pill px-4">
+                            <i class="bi  bi-plus-lg me-2"></i>Add New Address
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-4 mt-2">
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                        style="width: 32px; height: 32px; font-size: 0.8rem;" id="step-2-indicator">2</div>
+                    <h5 class="fw-bold text-muted mb-0" id="step-2-header">Payment Method</h5>
+                </div>
+
+                <div class="row g-3 mb-5" id="payment-methods-card"
+                    style="opacity: 0.5; transition: all 0.4s ease; filter: grayscale(1);">
+                    <div class="col-6">
+                        <label class="payment-selector w-100">
+                            <input type="radio" name="payment_method" value="online" class="d-none" checked>
+                            <div class="card border-0 shadow-sm rounded-4 p-3 text-center transition-all">
+                                <i class="bi bi-credit-card fs-3 mb-2 d-block"></i>
+                                <span class="fw-bold small">Online Payment</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="col-6">
+                        <label class="payment-selector w-100">
+                            <input type="radio" name="payment_method" value="cod" class="d-none">
+                            <div class="card border-0 shadow-sm rounded-4 p-3 text-center transition-all">
+                                <i class="bi bi-cash-stack fs-3 mb-2 d-block"></i>
+                                <span class="fw-bold small">COD</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-4 mt-2">
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                        style="width: 32px; height: 32px; font-size: 0.8rem;" id="step-3-indicator">3</div>
+                    <h5 class="fw-bold text-muted mb-0" id="step-3-header">Order Review</h5>
+                </div>
+
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden text-dark" id="payment-card"
+                    style="opacity: 0.5; transition: all 0.4s ease; filter: grayscale(1);">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4">Total Amortization</h5>
+                        <div class="d-flex justify-content-between mb-3 text-muted">
+                            <span>Order Total</span>
+                            <span>₹{{famount}}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 text-muted text-success">
+                            <span>Logistics Fee</span>
+                            <span>
+                                {% if shipping_fee == 0 %}
+                                <span class="badge bg-success">Free Delivery</span>
+                                {% else %}
+                                ₹{{shipping_fee}}.00
+                                {% endif %}
+                            </span>
+                        </div>
+                        <hr class="border-light opacity-10">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="fw-bold mb-0">Final Sum</h4>
+                            <h3 class="fw-bold mb-0" style="color: var(--primary);">₹{{totalamount}}</h3>
+                        </div>
+                        <div id="address-error"
+                            class="alert alert-warning border-0 rounded-4 py-2 px-3 mb-3 small d-none">
+                            <i class="bi bi-info-circle-fill me-2"></i>Please select a delivery address above.
+                        </div>
+                        <button id="rzp-button1" type="submit" class="btn btn-classic w-100 py-3 rounded-pill fw-bold"
+                            style="background-color: var(--primary); opacity: 0.6; cursor: not-allowed;" disabled>
+                            Select Address to Pay
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .address-selector {
+        cursor: pointer;
+        border: 2px solid transparent !important;
+        transition: all 0.3s ease;
+    }
+
+    .address-selector:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .address-selector input:checked+label {
+        color: var(--primary);
+    }
+
+    .address-selector:has(input:checked) {
+        border-color: var(--primary) !important;
+        background: rgba(11, 77, 60, 0.02);
+    }
+
+    .payment-selector {
+        cursor: pointer;
+    }
+
+    .payment-selector .card {
+        border: 2px solid transparent !important;
+        transition: all 0.3s ease;
+    }
+
+    .payment-selector input:checked+.card {
+        border-color: var(--primary) !important;
+        background: rgba(11, 77, 60, 0.05) !important;
+        color: var(--primary);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05) !important;
+    }
+</style>
+{% endblock main %}
+
+{% block payment-gateway %}
+<script>
+    var options = {
+        "key": "{{RAZOR_KEY_ID}}",
+        "amount": "{{razoramount}}",
+        "currency": "INR",
+        "name": "Milk & More",
+        "description": "Dairy Fresh Acquisition",
+        "image": "{% static 'images/dairy-fresh.jpg' %}",
+        "order_id": "{{order_id}}",
+        "handler": function (response) {
+            var form = document.getElementById("myform");
+            var custId = form.elements['custid'] ? form.elements['custid'].value : "";
+            window.location.href = "/paymentdone?order_id=" + response.razorpay_order_id + "&payment_id=" + response.razorpay_payment_id + "&cust_id=" + custId;
+        },
+        "prefill": {
+            "name": "{{request.user.username}}",
+            "email": "{{request.user.email}}"
+        },
+        "theme": {
+            "color": "#0b4d3c"
+        }
+    };
+    var rzp1 = new Razorpay(options);
+    rzp1.on('payment.failed', function (response) {
+        alert("Payment Failed: " + response.error.description);
+    });
+
+    // Dynamic validation and UI feedback
+    const btn = document.getElementById('rzp-button1');
+    const errorDiv = document.getElementById("address-error");
+    const addressRadios = document.querySelectorAll('input[name="custid"]');
+    const paymentMethodRadios = document.querySelectorAll('input[name="payment_method"]');
+
+    const step2Indicator = document.getElementById('step-2-indicator');
+    const step2Header = document.getElementById('step-2-header');
+    const paymentMethodsCard = document.getElementById('payment-methods-card');
+
+    const step3Indicator = document.getElementById('step-3-indicator');
+    const step3Header = document.getElementById('step-3-header');
+    const orderReviewCard = document.getElementById('payment-card');
+
+    function updateUI() {
+        const addressSelected = document.querySelector('input[name="custid"]:checked');
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+        if (addressSelected) {
+            // Unlock Step 2
+            step2Indicator.classList.remove('bg-secondary');
+            step2Indicator.classList.add('bg-primary');
+            step2Header.classList.remove('text-muted');
+            step2Header.classList.add('text-primary');
+            paymentMethodsCard.style.opacity = "1";
+            paymentMethodsCard.style.filter = "grayscale(0)";
+
+            // Unlock Step 3
+            step3Indicator.classList.remove('bg-secondary');
+            step3Indicator.classList.add('bg-primary');
+            step3Header.classList.remove('text-muted');
+            step3Header.classList.add('text-primary');
+            orderReviewCard.style.opacity = "1";
+            orderReviewCard.style.filter = "grayscale(0)";
+            orderReviewCard.classList.add('shadow-lg');
+
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+
+            if (paymentMethod === 'online') {
+                btn.innerHTML = 'Initialize Payment <i class="bi bi-credit-card ms-2"></i>';
+            } else {
+                btn.innerHTML = 'Place Order (COD) <i class="bi bi-box-seam ms-2"></i>';
+            }
+            errorDiv.classList.add('d-none');
+        }
+    }
+
+    addressRadios.forEach(radio => {
+        radio.addEventListener('change', updateUI);
+    });
+
+    paymentMethodRadios.forEach(radio => {
+        radio.addEventListener('change', updateUI);
+    });
+
+    document.getElementById('rzp-button1').onclick = function (e) {
+        e.preventDefault();
+
+        const addressSelected = document.querySelector('input[name="custid"]:checked');
+        if (!addressSelected) {
+            errorDiv.classList.remove('d-none');
+            return false;
+        }
+
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        if (paymentMethod === 'online') {
+            rzp1.open();
+        } else {
+            // Submit form to COD endpoint
+            const form = document.getElementById('myform');
+            form.action = "{% url 'checkout-cod' %}";
+            form.submit();
+        }
+    }
+
+    // If already checked on load (e.g. browser autofill/back button)
+    if (document.querySelector('input[name="custid"]:checked')) {
+        updateUI();
+    }
+</script>
+{% endblock payment-gateway %}

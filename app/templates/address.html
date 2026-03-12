@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dispatch Archive | Milk & More{% endblock title %}
+
+{% block main %}
+<div class="container py-5 my-5">
+    <div class="row g-5">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-4" data-aos="fade-right">
+            <div class="filter-card shadow-lg p-0 overflow-hidden">
+                <div class="filter-header px-4 pt-4">
+                    <span style="font-size: 1.2rem;">Account Hub</span>
+                </div>
+                <div class="list-group list-group-flush rounded-0 bg-transparent">
+                    <a href="{% url 'profile'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3 {% if request.resolver_match.url_name == 'profile' %}active-link{% endif %}">
+                        <i class="bi bi-person-circle fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">General
+                            Identity</span>
+                    </a>
+                    <a href="{% url 'address'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3 {% if request.resolver_match.url_name == 'address' %}active-link{% endif %}">
+                        <i class="bi bi-geo-alt fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Dispatch
+                            Archive</span>
+                    </a>
+                    <a href="{% url 'orders'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3">
+                        <i class="bi bi-bag-check fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Acquisition
+                            History</span>
+                    </a>
+                    <a href="{% url 'logout'%}"
+                        class="list-group-item list-group-item-action py-4 px-4 bg-transparent border-0 d-flex align-items-center gap-3 text-danger">
+                        <i class="bi bi-box-arrow-right fs-4"></i>
+                        <span class="text-uppercase letter-spacing-2 fw-bold" style="font-size: 0.8rem;">Terminate
+                            Session</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Address Grid -->
+        <div class="col-lg-8" data-aos="fade-left">
+            <div class="filter-card shadow-lg">
+                <div class="filter-header mb-5 d-flex justify-content-between align-items-center">
+                    <span>Saved Locations</span>
+                    <a href="{% url 'profile' %}"
+                        class="btn btn-sm btn-outline-primary rounded-0 px-4 text-uppercase fw-bold"
+                        style="font-size: 0.7rem; letter-spacing: 2px;">+ New Entry</a>
+                </div>
+
+                <div class="row g-4">
+                    {% for ad in add %}
+                    <div class="col-md-6">
+                        <div class="p-4 border border-secondary border-opacity-10 h-100 position-relative"
+                            style="background: rgba(255,255,255,0.02);">
+                            <div class="text-primary small text-uppercase letter-spacing-2 fw-bold mb-3">Location
+                                #{{forloop.counter}}</div>
+                            <h5 class="fw-bold mb-3" style="font-family: 'Cinzel';">{{ad.name}}</h5>
+                            <ul class="list-unstyled small text-muted mb-4 d-flex flex-column gap-2">
+                                <li><i class="bi bi-geo-alt me-2 text-primary"></i> {{ad.locality}}, {{ad.city}}</li>
+                                <li><i class="bi bi-pin-map me-2 text-primary"></i> {{ad.state}} - {{ad.zipcode}}</li>
+                                <li><i class="bi bi-telephone me-2 text-primary"></i> {{ad.mobile}}</li>
+                            </ul>
+                            <div class="d-flex gap-3 pt-3 border-top border-secondary border-opacity-10">
+                                <a href="{% url 'updateAddress' pk=ad.id %}"
+                                    class="text-primary text-decoration-none small text-uppercase fw-bold"
+                                    style="letter-spacing: 1px;">Update</a>
+                                <a href="{% url 'deleteaddress' pk=ad.id %}"
+                                    class="text-danger text-decoration-none small text-uppercase fw-bold"
+                                    style="letter-spacing: 1px;">Erase</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-map display-1 text-muted opacity-10 mb-4 d-block"></i>
+                        <h4 class="fw-bold">No dispatch archives found.</h4>
+                        <p class="text-muted">Register your first delivery location in the general identity tab.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .active-link {
+        background: rgba(210, 105, 30, 0.1) !important;
+        border-left: 4px solid var(--primary-color) !important;
+        color: var(--primary-color) !important;
+    }
+</style>
+{% endblock main %}

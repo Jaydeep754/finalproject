@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exquisite {{product.0.get_category_display}} Collection{% endblock title %}
+
+{% block main %}
+<!-- Category Header -->
+<div class="category-hero py-5 mb-5"
+    style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);">
+    <div class="container py-4 text-center">
+        <h1 class="display-4 fw-bold text-white mb-3" data-aos="zoom-in"
+            style="font-family: 'Outfit', sans-serif; letter-spacing: -1px;">
+            {{product.0.get_category_display}}
+        </h1>
+        <p class="text-white-50 lead mx-auto" style="max-width: 600px;" data-aos="fade-up" data-aos-delay="200">
+            Discover our curated selection of premium dairy products, sourced from the finest farms and delivered fresh.
+        </p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-5">
+        <!-- Filter Sidebar -->
+        <div class="col-lg-3">
+            <div class="filter-card shadow-lg" data-aos="fade-right">
+                <div class="filter-header">
+                    <span>Selection</span>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-title">
+                        <i class="bi bi-grid-3x3-gap me-2"></i> Collections
+                    </div>
+                    <ul class="filter-list">
+                        {% for value in title %}
+                        <li class="filter-item">
+                            <a href="{% url 'category-title' value.title %}" class="filter-link">
+                                {{value.title}}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Product Collection -->
+        <div class="col-lg-9">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+                {% for prod in product %}
+                <div class="col" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:1 }}00">
+                    <div class="card card-product h-100 shadow-sm">
+                        <a href="{% url 'product-detail' prod.id %}" class="text-decoration-none">
+                            <div class="product-img-wrapper">
+                                <img src="{{prod.product_image.url}}" alt="{{prod.title}}">
+                                {% if prod.discounted_price < prod.selling_price %} <span class="badge-classic">Special
+                                    Offer</span>
+                                    {% endif %}
+                            </div>
+                            <div class="product-info">
+                                <h5 class="product-title" style="font-family: 'Outfit';">{{prod.title}}</h5>
+                                <div class="product-price mb-4">
+                                    ₹{{prod.discounted_price}}
+                                    {% if prod.discounted_price < prod.selling_price %} <span
+                                        class="text-muted text-decoration-line-through small ms-2">
+                                        ₹{{prod.selling_price}}</span>
+                                        {% endif %}
+                                </div>
+                                <div>
+                                    <button class="btn btn-classic w-100 py-3 rounded-pill">Examine Details</button>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5" data-aos="zoom-in">
+                    <i class="bi bi-box-seam display-1 text-muted opacity-25 mb-4 d-block"></i>
+                    <h3 class="fw-bold">No items found in this collection.</h3>
+                    <p class="text-muted mb-4">We are currently curating more fresh items for you.</p>
+                    <a href="/" class="btn btn-classic px-5 rounded-pill">Continue Exploring</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock main %}

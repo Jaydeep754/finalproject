@@ -1,0 +1,80 @@
+# 🥛 Milk & More - Premium Dairy Ecosystem
+
+A state-of-the-art E-commerce web application for dairy products, featuring a premium glassmorphic UI, real-time order tracking, and a comprehensive administration suite. Built with Django, Python, and integrated with Razorpay for secure payments.
+
+---
+
+## 🚀 Key Functional Modules
+
+### 👤 Customer Experience
+- **Premium Shop Interface**: Stunning product catalog with real-time price updates based on package size.
+- **Dynamic Cart System**: Seamlessly add, remove, and update quantities with instant subtotal calculations.
+- **Heritage Order History**: A translucent "Order Archive" where customers can track order status (Pending, Packed, Shipped, Delivered) and view group order breakdowns.
+- **Conflict Resolution**: Dedicated complaint submission system linked directly to specific orders.
+- **Product Sentiment**: Interactive review system allowing verified buyers to rate and comment on dairy heritage products.
+- **Secure Authentication**: Advanced login/signup with OTP-based password recovery and session management.
+
+### 🛡️ Admin Intelligence Console
+- **Order Intelligence**: A high-performance search engine to filter orders by Payment ID, Customer Name, Mobile, or Status.
+- **Product Catalog Management**: Fully interactive dashboard to **Add, Update, and Delete** products with auto-calculating discounted prices.
+- **Customer Directory**: Centralized lookup for customer profiles, locations, and contact details.
+- **Transaction Ledger**: Detailed audit logs for all payments (Razorpay IDs, amount, and paid status).
+- **Sentiment & Conflict Control**: Management consoles for responding to customer complaints and moderating product reviews.
+- **Real-time Ecosystem**: One-click status updates that synchronize instantly across customer and delivery dashboards.
+
+### 🚚 Field Navigator (Delivery Personnel)
+- **Assigned Deliveries**: Specialized view for delivery staff to see grouped orders assigned to them.
+- **Instant Search**: Quick-lookup system to find customers by Mobile or Transaction ID on the move.
+- **Status Progression**: Real-time status toggle (Out for Delivery -> Delivered) with automated reporting back to the admin.
+
+---
+
+## 🛠️ Tech Stack & Security
+- **Frontend**: Vanilla CSS (Premium Glassmorphism), HTML5, JavaScript (ES6+).
+- **Backend**: Django & Python (Robust MVC Architecture).
+- **Database**: SQLite3 (Optimized relations and indexing).
+- **Payments**: Razorpay API Integration (Encrypted transactions).
+- **Security**: 
+  - CSRF protection on all forms.
+  - SQL Injection prevention via Django ORM.
+  - XSS filtering and secure data masking.
+  - Password hashing via PBKDF2.
+
+---
+
+## 🧪 How to Run Locally
+
+1. **Clone the repo**
+   ```bash
+   git clone [your-repo-link]
+   cd finalproject
+   ```
+2. **Setup Virtual Environment**
+   ```bash
+   python -m venv venv
+   # Windows:
+   .\venv\Scripts\activate
+   ```
+3. **Install Dependencies**
+   ```bash
+   pip install -r requirment.txt
+   ```
+4. **Environment Parameters**
+   Ensure your Razorpay API keys are configured in `ec/settings.py`.
+5. **Run Migrations**
+   ```bash
+   python manage.py migrate
+   ```
+6. **Deploy Server**
+   ```bash
+   python manage.py runserver
+   ```
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+# 📌 Documentation Metadata
+**Project Title**: Milk & More  
+**Updated**: 2026

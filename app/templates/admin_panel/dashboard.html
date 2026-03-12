@@ -1,0 +1,130 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Milk & More Admin{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+            <div class="stat-info">
+                <h2>₹{{ total_revenue|floatformat:2 }}</h2>
+                <p>Total Revenue</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon icon-blue">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ total_customers }}</h2>
+                <p>Total Customers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon icon-gold">
+                <i class="fa-solid fa-cart-shopping"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ total_orders }}</h2>
+                <p>Total Orders</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card stat-card">
+            <div class="stat-icon bg-danger-subtle text-danger">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ pending_orders }}</h2>
+                <p>Pending Orders</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-6">
+        <div class="glass-card stat-card">
+            <div class="stat-icon icon-emerald">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ total_products }}</h2>
+                <p>Total Products</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="glass-card stat-card">
+            <div class="stat-icon icon-gold">
+                <i class="fa-solid fa-truck-fast"></i>
+            </div>
+            <div class="stat-info">
+                <h2>{{ total_orders }}</h2>
+                <p>All Time Orders</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Recent Orders</h5>
+                <a href="{% url 'admin-orders' %}" class="btn btn-sm btn-outline-success border-2 fw-bold">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table custom-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in latest_orders %}
+                        <tr>
+                            <td class="fw-bold">#{{ group.id }}</td>
+                            <td>{{ group.customer.name }}</td>
+                            <td>
+                                <span class="fw-bold">{{ group.items.0.product.title }}</span>
+                                {% if group.items|length > 1 %}
+                                <span class="badge bg-light text-primary border ms-1">+{{ group.items|length|add:"-1" }} more</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ group.ordered_date|date:"d M Y" }}</td>
+                            <td>
+                                <span class="status-badge 
+                                    {% if group.status == 'Pending' %}status-pending
+                                    {% elif group.status == 'Delivered' %}status-delivered
+                                    {% else %}status-shipped{% endif %}">
+                                    {{ group.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No orders found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

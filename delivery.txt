@@ -1,0 +1,97 @@
+Authentication & Account Management
+
+• Delivery person can login using email and password.
+• Delivery person can logout securely.
+• Delivery person can change password.
+• Delivery person can update profile information (name, phone number).
+• Delivery person can reset forgotten password.
+
+Dashboard
+
+• View delivery dashboard after login.
+• View summary including:
+
+Total assigned orders
+
+Pending deliveries
+
+Completed deliveries
+
+Failed deliveries
+
+Order Management
+
+• View list of assigned orders.
+• View detailed order information including:
+
+Order ID
+
+Customer name
+
+Delivery address
+
+Customer phone number
+
+Product details
+
+Payment method (COD / Online)
+
+Order status
+
+• Accept or reject assigned delivery (optional based on system design).
+
+Delivery Status Management
+
+• Update delivery status:
+
+Assigned
+
+Out for Delivery
+
+Delivered
+
+Failed Delivery
+
+Cancelled
+
+• Add delivery notes (example: customer not available).
+
+COD Payment Handling
+
+• Mark Cash on Delivery (COD) as collected.
+• View COD collection history.
+• View total COD amount collected.
+
+Navigation & Contact
+
+• View customer delivery address.
+• View customer contact number.
+• Option to call customer.
+• Option to view delivery location on map (optional advanced feature).
+
+Delivery History
+
+• View completed deliveries.
+• View failed deliveries.
+• View delivery history with dates and status.
+
+Notifications
+
+• Receive notification when new order is assigned.
+• Receive notification when order is cancelled.
+
+Security & Access Control
+
+• Delivery person cannot access admin panel.
+• Delivery person cannot modify products.
+• Delivery person cannot modify orders except delivery status.
+• Delivery person can only view assigned orders.
+
+Admin Controls (Admin Side)
+
+Admin can:
+• Add delivery person.
+• Edit delivery person details.
+• Delete delivery person.
+• Assign orders to delivery person.
+• View delivery performance.
