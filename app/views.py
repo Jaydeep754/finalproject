@@ -92,8 +92,14 @@ def login_user(request):
         email = request.POST.get('username')
         password = request.POST.get('password')
         
-        # Try regular authentication first
+        # Try regular authentication first (by username)
         user = authenticate(request, username=email, password=password)
+        
+        # If username auth fails, try looking up by email
+        if not user:
+            user_by_email = User.objects.filter(email=email).first()
+            if user_by_email:
+                user = authenticate(request, username=user_by_email.username, password=password)
         
         # If regular auth fails, check Hardcoded Credentials
         if not user and email == 'sahilbatman234@gmail.com' and password == 'password':
@@ -799,12 +805,26 @@ def orders(request):
     queryset = OrderPlaced.objects.filter(user=request.user).select_related('product', 'payment', 'customer').order_by('-ordered_date')
     
     if query:
-        queryset = queryset.filter(
-            Q(payment__razorpay_order_id__icontains=query) |
-            Q(product__title__icontains=query) |
-            Q(status__icontains=query) |
-            Q(payment__id__icontains=query.replace('COD', '').replace('cod', ''))
-        ).distinct()
+        search_query = query.strip()
+        filters = Q(product__title__icontains=search_query) | Q(status__icontains=search_query)
+        
+        # Search by razorpay_order_id (full or partial/suffix match for displayed short IDs)
+        filters |= Q(payment__razorpay_order_id__icontains=search_query)
+        
+        # Search by razorpay_payment_id
+        filters |= Q(payment__razorpay_payment_id__icontains=search_query)
+        
+        # Handle COD format search (e.g. COD00015 -> payment id 15)
+        if search_query.upper().startswith('COD'):
+            cod_num = search_query[3:].lstrip('0')
+            if cod_num:
+                filters |= Q(payment__id=int(cod_num), payment__razorpay_payment_status='Cash On Delivery')
+        
+        # Try matching as a payment ID number directly
+        if search_query.isdigit():
+            filters |= Q(payment__id=int(search_query))
+        
+        queryset = queryset.filter(filters).distinct()
         
     order_groups = get_grouped_orders(queryset)
     return render(request, "orders.html", locals())
@@ -935,16 +955,206 @@ def admin_orders(request):
     queryset = OrderPlaced.objects.all().select_related('product', 'payment', 'customer', 'delivery_person').order_by('-ordered_date')
     
     if query:
-        queryset = queryset.filter(
-            Q(payment__razorpay_order_id__icontains=query) |
-            Q(customer__name__icontains=query) |
-            Q(customer__mobile__icontains=query) |
-            Q(status__icontains=query) |
-            Q(payment__id__icontains=query.replace('COD', '').replace('cod', ''))
-        ).distinct()
+        search_query = query.strip()
+        filters = (
+            Q(customer__name__icontains=search_query) |
+            Q(customer__mobile__icontains=search_query) |
+            Q(status__icontains=search_query) |
+            Q(product__title__icontains=search_query)
+        )
+        
+        # Search by razorpay_order_id (full or partial/suffix match for displayed short IDs)
+        filters |= Q(payment__razorpay_order_id__icontains=search_query)
+        
+        # Search by razorpay_payment_id
+        filters |= Q(payment__razorpay_payment_id__icontains=search_query)
+        
+        # Handle COD format search (e.g. COD00015 -> payment id 15)
+        if search_query.upper().startswith('COD'):
+            cod_num = search_query[3:].lstrip('0')
+            if cod_num:
+                filters |= Q(payment__id=int(cod_num), payment__razorpay_payment_status='Cash On Delivery')
+        
+        # Try matching as a payment ID number directly
+        if search_query.isdigit():
+            filters |= Q(payment__id=int(search_query))
+        
+        queryset = queryset.filter(filters).distinct()
         
     order_groups = get_grouped_orders(queryset)
     return render(request, 'admin_panel/orders.html', locals())
+
+@user_passes_test(is_admin)
+def admin_sales_report(request):
+    period = request.GET.get('period', 'today')
+    now = timezone.now()
+    
+    # Define date ranges
+    if period == 'today':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"Today ({now.strftime('%d %b %Y')})"
+    elif period == 'week':
+        start_date = now - timedelta(days=now.weekday())
+        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"This Week ({start_date.strftime('%d %b')} - {now.strftime('%d %b %Y')})"
+    elif period == 'month':
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"This Month ({now.strftime('%B %Y')})"
+    elif period == 'year':
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"This Year ({now.strftime('%Y')})"
+    else:  # total / all
+        period = 'total'
+        start_date = None
+        period_label = "All Time"
+    
+    # Base queryset - only Delivered orders count as sales
+    base_qs = OrderPlaced.objects.filter(status='Delivered').select_related('product', 'payment', 'customer')
+    if start_date:
+        base_qs = base_qs.filter(ordered_date__gte=start_date)
+    
+    # Core stats
+    from django.db.models import Sum, Count, Avg, F
+    total_orders_count = base_qs.values('payment__id').distinct().count()
+    total_items_sold = base_qs.aggregate(total=Sum('quantity'))['total'] or 0
+    total_revenue = sum(o.total_cost for o in base_qs)
+    avg_order_value = total_revenue / total_orders_count if total_orders_count > 0 else 0
+    
+    # Top selling products
+    top_products = (
+        base_qs.values('product__title', 'product__id')
+        .annotate(
+            qty_sold=Sum('quantity'),
+            revenue=Sum(F('quantity') * F('price'))
+        )
+        .order_by('-qty_sold')[:5]
+    )
+    
+    # Category breakdown
+    category_sales = (
+        base_qs.values('product__category')
+        .annotate(
+            qty_sold=Sum('quantity'),
+            revenue=Sum(F('quantity') * F('price'))
+        )
+        .order_by('-revenue')
+    )
+    category_map = dict(CATEGORY_CHOICES)
+    for cat in category_sales:
+        cat['category_name'] = category_map.get(cat['product__category'], cat['product__category'])
+    
+    # Payment method breakdown
+    cod_orders = base_qs.filter(payment__razorpay_payment_status='Cash On Delivery')
+    online_orders = base_qs.exclude(payment__razorpay_payment_status='Cash On Delivery')
+    cod_revenue = sum(o.total_cost for o in cod_orders)
+    online_revenue = sum(o.total_cost for o in online_orders)
+    cod_count = cod_orders.values('payment__id').distinct().count()
+    online_count = online_orders.values('payment__id').distinct().count()
+    
+    # Recent delivered orders for the period (grouped)
+    order_groups = get_grouped_orders(base_qs.order_by('-ordered_date'))
+    
+    context = {
+        'period': period,
+        'period_label': period_label,
+        'total_orders_count': total_orders_count,
+        'total_items_sold': total_items_sold,
+        'total_revenue': round(total_revenue, 2),
+        'avg_order_value': round(avg_order_value, 2),
+        'top_products': top_products,
+        'category_sales': category_sales,
+        'cod_revenue': round(cod_revenue, 2),
+        'online_revenue': round(online_revenue, 2),
+        'cod_count': cod_count,
+        'online_count': online_count,
+        'order_groups': order_groups,
+        'report_generated_at': now,
+    }
+    return render(request, 'admin_panel/sales_report.html', context)
+
+
+@user_passes_test(is_admin)
+def admin_sales_report_pdf(request):
+    period = request.GET.get('period', 'today')
+    now = timezone.now()
+    
+    if period == 'today':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"Today ({now.strftime('%d %b %Y')})"
+    elif period == 'week':
+        start_date = now - timedelta(days=now.weekday())
+        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"This Week ({start_date.strftime('%d %b')} - {now.strftime('%d %b %Y')})"
+    elif period == 'month':
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"This Month ({now.strftime('%B %Y')})"
+    elif period == 'year':
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        period_label = f"This Year ({now.strftime('%Y')})"
+    else:
+        period = 'total'
+        start_date = None
+        period_label = "All Time"
+    
+    from django.db.models import Sum, F
+    base_qs = OrderPlaced.objects.filter(status='Delivered').select_related('product', 'payment', 'customer')
+    if start_date:
+        base_qs = base_qs.filter(ordered_date__gte=start_date)
+    
+    total_orders_count = base_qs.values('payment__id').distinct().count()
+    total_items_sold = base_qs.aggregate(total=Sum('quantity'))['total'] or 0
+    total_revenue = sum(o.total_cost for o in base_qs)
+    avg_order_value = total_revenue / total_orders_count if total_orders_count > 0 else 0
+    
+    top_products = (
+        base_qs.values('product__title')
+        .annotate(qty_sold=Sum('quantity'), revenue=Sum(F('quantity') * F('price')))
+        .order_by('-qty_sold')[:10]
+    )
+    
+    category_sales = (
+        base_qs.values('product__category')
+        .annotate(qty_sold=Sum('quantity'), revenue=Sum(F('quantity') * F('price')))
+        .order_by('-revenue')
+    )
+    category_map = dict(CATEGORY_CHOICES)
+    for cat in category_sales:
+        cat['category_name'] = category_map.get(cat['product__category'], cat['product__category'])
+    
+    cod_orders = base_qs.filter(payment__razorpay_payment_status='Cash On Delivery')
+    online_orders = base_qs.exclude(payment__razorpay_payment_status='Cash On Delivery')
+    cod_revenue = sum(o.total_cost for o in cod_orders)
+    online_revenue = sum(o.total_cost for o in online_orders)
+    
+    order_groups = get_grouped_orders(base_qs.order_by('-ordered_date'))
+    
+    context = {
+        'period_label': period_label,
+        'total_orders_count': total_orders_count,
+        'total_items_sold': total_items_sold,
+        'total_revenue': round(total_revenue, 2),
+        'avg_order_value': round(avg_order_value, 2),
+        'top_products': top_products,
+        'category_sales': category_sales,
+        'cod_revenue': round(cod_revenue, 2),
+        'online_revenue': round(online_revenue, 2),
+        'order_groups': order_groups,
+        'report_generated_at': now,
+    }
+    
+    template = get_template('admin_panel/sales_report_pdf.html')
+    html = template.render(context)
+    
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="sales_report_{period}_{now.strftime("%Y%m%d")}.pdf"'
+        return response
+    
+    messages.error(request, "Error generating sales report PDF.")
+    return redirect('admin-sales-report')
 
 def restore_stock(order):
     product = order.product
@@ -1468,23 +1678,74 @@ def delivery_otp_verify(request, pk):
     if request.method == 'POST':
         otp_input = request.POST.get('otp')
         if order.delivery_otp and otp_input and otp_input == order.delivery_otp:
-            # Mark as delivered
-            order.status = 'Delivered'
-            order.delivery_otp = None
-            order.save()
-            # Send thank you/review email
+            # Mark all items in this payment group as delivered
+            if order.payment:
+                group_items = OrderPlaced.objects.filter(payment=order.payment, delivery_person=dp)
+            else:
+                group_items = OrderPlaced.objects.filter(id=pk, delivery_person=dp)
+
+            for o in group_items:
+                o.status = 'Delivered'
+                o.delivery_otp = None
+                o.save()
+
+            # Send thank you email with Invoice PDF attached
             customer_email = order.customer.user.email
             if customer_email:
-                subject = "Order Delivered - MILK&MORE"
+                subject = "Order Delivered - Thank You! - MILK&MORE"
                 message = (
-                    "Your order has been successfully delivered! Thank you for choosing MILK&MORE.\n\n"
-                    "Please rate and review your product. If you faced any inconvenience, contact us at 9327558924 or add a complaint from your orders page."
+                    f"Hi {order.customer.name},\n\n"
+                    f"Your order has been successfully delivered! Thank you for choosing MILK&MORE.\n\n"
+                    f"Please find your invoice attached to this email for your records.\n\n"
+                    f"We would love to hear your feedback! Please rate and review your product on our website.\n"
+                    f"If you faced any inconvenience, contact us at 9327558924 or add a complaint from your orders page.\n\n"
+                    f"Best regards,\nMILK&MORE Team"
                 )
                 from_email = settings.DEFAULT_FROM_EMAIL
                 try:
-                    send_mail(subject, message, from_email, [customer_email])
+                    from django.core.mail import EmailMessage as DjangoEmailMessage
+
+                    # Generate Invoice PDF using the existing invoice template
+                    payment = order.payment
+                    if payment:
+                        invoice_orders = OrderPlaced.objects.filter(payment=payment)
+                    else:
+                        invoice_orders = OrderPlaced.objects.filter(id=order.id)
+                    customer = order.customer
+
+                    subtotal = sum(o.total_cost for o in invoice_orders)
+                    shipping_fee = 0 if subtotal >= 500 else (40 if subtotal > 0 else 0)
+
+                    context = {
+                        'payment': payment,
+                        'orders': invoice_orders,
+                        'customer': customer,
+                        'subtotal': subtotal,
+                        'shipping_fee': shipping_fee,
+                    }
+                    template = get_template('invoice_template.html')
+                    html = template.render(context)
+
+                    pdf_buffer = BytesIO()
+                    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), pdf_buffer)
+
+                    email = DjangoEmailMessage(
+                        subject=subject,
+                        body=message,
+                        from_email=from_email,
+                        to=[customer_email],
+                    )
+
+                    if not pdf.err:
+                        email.attach(
+                            f'invoice_{payment.id if payment else order.id}.pdf',
+                            pdf_buffer.getvalue(),
+                            'application/pdf'
+                        )
+
+                    email.send()
                 except Exception as e:
-                    print(f"Error sending delivery confirmation email: {e}")
+                    print(f"Error sending delivery confirmation email with invoice: {e}")
             
             # Return JSON response for AJAX
             return JsonResponse({'status': 'success', 'message': 'OTP verified successfully'})
@@ -1599,10 +1860,15 @@ def download_invoice(request, payment_id):
     # Get the customer details from the first order (they should all be the same for one payment)
     customer = orders.first().customer
     
+    subtotal = sum(o.total_cost for o in orders)
+    shipping_fee = 0 if subtotal >= 500 else (40 if subtotal > 0 else 0)
+
     context = {
         'payment': payment,
         'orders': orders,
         'customer': customer,
+        'subtotal': subtotal,
+        'shipping_fee': shipping_fee,
     }
     
     # Render HTML template to a string

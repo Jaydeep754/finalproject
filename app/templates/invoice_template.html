@@ -1,57 +1,70 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <style>
         @page {
             size: A4;
             margin: 1cm;
         }
+
         body {
             font-family: Helvetica, Arial, sans-serif;
             font-size: 14px;
             color: #333;
         }
+
         .header {
             text-align: center;
             border-bottom: 2px solid #5a5a5a;
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
+
         .header h1 {
             color: #2c3e50;
             margin: 0;
             font-size: 28px;
         }
+
         .header p {
             margin: 5px 0 0 0;
             color: #7f8c8d;
         }
+
         .details-table {
             width: 100%;
             margin-bottom: 20px;
         }
+
         .details-table td {
             vertical-align: top;
             padding: 5px;
         }
+
         .items-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-        .items-table th, .items-table td {
+
+        .items-table th,
+        .items-table td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
+
         .items-table th {
             background-color: #f2f2f2;
             font-weight: bold;
         }
+
         .total-row {
             font-weight: bold;
             background-color: #f8f9fa;
         }
+
         .footer {
             text-align: center;
             margin-top: 40px;
@@ -62,6 +75,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="header">
@@ -108,7 +122,15 @@
             </tr>
             {% endfor %}
             <tr class="total-row">
-                <td colspan="4" style="text-align: right;">Total Valid Amount</td>
+                <td colspan="4" style="text-align: right;">Subtotal</td>
+                <td>Rs. {{ subtotal }}</td>
+            </tr>
+            <tr>
+                <td colspan="4" style="text-align: right;">Delivery Charges</td>
+                <td>{% if shipping_fee > 0 %}Rs. {{ shipping_fee }}{% else %}FREE{% endif %}</td>
+            </tr>
+            <tr class="total-row" style="font-size: 16px;">
+                <td colspan="4" style="text-align: right;">Grand Total</td>
                 <td>Rs. {{ payment.amount }}</td>
             </tr>
         </tbody>
@@ -120,4 +142,5 @@
     </div>
 
 </body>
+
 </html>

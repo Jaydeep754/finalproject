@@ -417,6 +417,12 @@
                         <i class="fa-solid fa-truck"></i> Delivery Staff
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{% url 'admin-sales-report' %}"
+                        class="nav-link {% if 'sales-report' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="fa-solid fa-chart-pie"></i> Sales Reports
+                    </a>
+                </li>
             </ul>
         </div>
 

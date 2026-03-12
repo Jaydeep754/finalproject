@@ -172,6 +172,7 @@
                             <!-- Payment Collected Checkbox - Shows only after OTP is verified -->
                             <div id="paymentCheckboxContainer" style="display: none;" class="mt-4">
                                 <hr>
+                                {% if order.payment.razorpay_payment_status == 'Cash On Delivery' %}
                                 <div class="mb-3 form-check p-3 bg-light rounded border border-success shadow-sm">
                                     <input type="checkbox" class="form-check-input" id="paymentCheckbox" name="payment_collected">
                                     <label class="form-check-label ms-2 fw-bold text-dark" for="paymentCheckbox">
@@ -179,6 +180,12 @@
                                     </label>
                                 </div>
                                 <small class="text-muted d-block">Please confirm if you have received the cash payment for this delivery.</small>
+                                {% else %}
+                                <div class="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span><strong>Payment Already Completed Online</strong> — No cash collection needed.</span>
+                                </div>
+                                {% endif %}
                                 <button type="button" id="confirmDeliveryBtn" class="btn btn-success w-100 mt-3">Confirm Delivery</button>
                             </div>
 

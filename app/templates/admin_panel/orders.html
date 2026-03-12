@@ -29,7 +29,7 @@
                             </div>
                             <div class="col">
                                 <input type="text" name="q" class="form-control border-0 bg-transparent shadow-none px-4" 
-                                       placeholder="Paste Transaction ID, Customer Name, or Mobile Number..." 
+                                       placeholder="Search by Order ID, Transaction ID, Customer Name, Mobile, or Product..." 
                                        value="{{ request.GET.q|default:'' }}"
                                        style="height: 60px; font-size: 1.15rem; font-weight: 500;">
                             </div>
@@ -94,7 +94,7 @@
                     <div class="row align-items-center g-3">
                         <div class="col-md-6">
                             <div class="d-flex align-items-center gap-3">
-                                <span class="badge text-white rounded-pill px-3 py-2 small fw-bold" style="background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);">
+                                <span class="badge text-white rounded-pill px-3 py-2 fw-bold" style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); font-size: 0.85rem;">
                                     ORDER #{{group.id}}
                                 </span>
                                 <span class="text-muted small"><i class="fa-solid fa-calendar-days me-1"></i> {{group.ordered_date|date:"d M Y, H:i"}}</span>
