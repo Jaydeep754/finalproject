@@ -1102,12 +1102,27 @@ def admin_sales_report(request):
     # Recent delivered orders for the period (grouped)
     order_groups = get_grouped_orders(base_qs.order_by('-ordered_date'))
     
+    # Financial breakdown (Adjusted Revenue)
+    total_delivery_charges = 0
+    total_delivery_earnings = 0
+    
+    for group in order_groups:
+        subtotal = group['total_amount']
+        shipping_fee = 0 if subtotal >= 500 else (40 if subtotal > 0 else 0)
+        total_delivery_charges += shipping_fee
+        total_delivery_earnings += group['earning']
+    
+    total_adjusted_revenue = total_revenue + total_delivery_charges - total_delivery_earnings
+    
     context = {
         'period': period,
         'period_label': period_label,
         'total_orders_count': total_orders_count,
         'total_items_sold': round(total_items_sold, 2),
         'total_revenue': round(total_revenue, 2),
+        'total_delivery_charges': round(total_delivery_charges, 2),
+        'total_delivery_earnings': round(total_delivery_earnings, 2),
+        'total_adjusted_revenue': round(total_adjusted_revenue, 2),
         'avg_order_value': round(avg_order_value, 2),
         'top_products': top_products,
         'category_sales': category_sales_list,
@@ -1218,11 +1233,26 @@ def admin_sales_report_pdf(request):
     
     order_groups = get_grouped_orders(base_qs.order_by('-ordered_date'))
     
+    # Financial breakdown (Adjusted Revenue)
+    total_delivery_charges = 0
+    total_delivery_earnings = 0
+    
+    for group in order_groups:
+        subtotal = group['total_amount']
+        shipping_fee = 0 if subtotal >= 500 else (40 if subtotal > 0 else 0)
+        total_delivery_charges += shipping_fee
+        total_delivery_earnings += group['earning']
+    
+    total_adjusted_revenue = total_revenue + total_delivery_charges - total_delivery_earnings
+    
     context = {
         'period_label': period_label,
         'total_orders_count': total_orders_count,
         'total_items_sold': round(total_items_sold, 2),
         'total_revenue': round(total_revenue, 2),
+        'total_delivery_charges': round(total_delivery_charges, 2),
+        'total_delivery_earnings': round(total_delivery_earnings, 2),
+        'total_adjusted_revenue': round(total_adjusted_revenue, 2),
         'avg_order_value': round(avg_order_value, 2),
         'top_products': top_products,
         'category_sales': category_sales_list,
@@ -1976,3 +2006,54 @@ def download_invoice(request, payment_id):
     
     messages.error(request, "Error generating PDF invoice.")
     return redirect('orders')
+
+@user_passes_test(is_admin)
+def admin_users(request):
+    query = request.GET.get('q')
+    users = User.objects.all().order_by('-date_joined')
+    
+    if query:
+        users = users.filter(
+            Q(username__icontains=query) |
+            Q(email__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)
+        ).distinct()
+    
+    for user in users:
+        if user.is_staff or user.is_superuser:
+            user.role = "Admin"
+        elif hasattr(user, 'deliveryperson'):
+            user.role = "Delivery Staff"
+        elif Customer.objects.filter(user=user).exists():
+            user.role = "Customer"
+        else:
+            user.role = "Registered User"
+            
+    return render(request, 'admin_panel/users.html', locals())
+
+@user_passes_test(is_admin)
+def admin_user_detail(request, pk):
+    user = User.objects.get(pk=pk)
+    customer_profiles = Customer.objects.filter(user=user)
+    delivery_profile = getattr(user, 'deliveryperson', None)
+    
+    # Financial data for delivery profile if exists
+    if delivery_profile:
+        assigned_orders = OrderPlaced.objects.filter(delivery_person=delivery_profile).select_related('payment', 'product', 'customer').order_by('-ordered_date')
+        delivery_profile.grouped_orders = get_grouped_orders(assigned_orders)
+        delivery_profile.total_earning = sum(g['earning'] for g in delivery_profile.grouped_orders if g['status'] == 'Delivered')
+    
+    # Recent orders for customer
+    recent_orders = OrderPlaced.objects.filter(user=user).select_related('product', 'payment', 'customer').order_by('-ordered_date')[:10]
+    
+    if user.is_staff or user.is_superuser:
+        role = "Admin"
+    elif delivery_profile:
+        role = "Delivery Staff"
+    elif customer_profiles.exists():
+        role = "Customer"
+    else:
+        role = "Registered User"
+        
+    return render(request, 'admin_panel/user_detail.html', locals())

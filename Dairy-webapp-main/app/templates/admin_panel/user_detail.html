@@ -1,0 +1,233 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}User Detail - {{ user.username }}{% endblock %}
+{% block page_title %}User Profile Details{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'admin-users' %}" class="btn btn-outline-dark rounded-circle p-2 shadow-sm" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h4 class="fw-bold mb-0">Account: {{ user.username }}</h4>
+        </div>
+        <div>
+            {% if role == "Admin" %}
+            <span class="badge bg-danger px-4 py-2 rounded-pill shadow-sm">ADMINISTRATOR</span>
+            {% elif role == "Delivery Staff" %}
+            <span class="badge bg-info px-4 py-2 rounded-pill shadow-sm">DELIVERY STAFF</span>
+            {% elif role == "Customer" %}
+            <span class="badge bg-success px-4 py-2 rounded-pill shadow-sm">RETAIL CUSTOMER</span>
+            {% else %}
+            <span class="badge bg-secondary px-4 py-2 rounded-pill shadow-sm">REGISTERED USER</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Account Overview Card -->
+        <div class="col-md-4">
+            <div class="glass-card h-100 shadow-sm border-0">
+                <div class="text-center mb-4">
+                    <div class="user-avatar mx-auto mb-3 text-uppercase d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2.5rem; background: var(--gold-dark); color: white; border-radius: 50%;">
+                        {{ user.username|slice:":1" }}
+                    </div>
+                    <h5 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                    <p class="text-muted small mb-0">{{ user.email }}</p>
+                </div>
+                
+                <hr class="opacity-10">
+                
+                <div class="info-list">
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <span class="text-muted small fw-semibold">USERNAME</span>
+                        <span class="fw-bold small">{{ user.username }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <span class="text-muted small fw-semibold">JOINED</span>
+                        <span class="fw-bold small">{{ user.date_joined|date:"d M Y" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                        <span class="text-muted small fw-semibold">LAST LOGIN</span>
+                        <span class="fw-bold small">{{ user.last_login|date:"d M Y, H:i"|default:"Never" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted small fw-semibold">IS ACTIVE</span>
+                        <span>
+                            {% if user.is_active %}
+                            <i class="fa-solid fa-circle-check text-success"></i> <small class="fw-bold text-success">Active</small>
+                            {% else %}
+                            <i class="fa-solid fa-circle-xmark text-danger"></i> <small class="fw-bold text-danger">Inactive</small>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linked Profiles -->
+        <div class="col-md-8">
+            <!-- Customer Profiles -->
+            {% if customer_profiles %}
+            <div class="glass-card mb-4 shadow-sm border-0">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-address-book text-primary me-2"></i> Linked Customer Profile{{ customer_profiles|length|pluralize }}</h5>
+                <div class="row g-3">
+                    {% for customer in customer_profiles %}
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-4 bg-light bg-opacity-50">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold mb-0">{{ customer.name }}</h6>
+                                <span class="badge bg-primary rounded-pill small">#{{ customer.id }}</span>
+                            </div>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-phone me-2"></i>{{ customer.mobile }}</div>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-location-dot me-2"></i>{{ customer.locality }}, {{ customer.city }}</div>
+                            <div class="small text-muted"><i class="fa-solid fa-map-pin me-2"></i>{{ customer.get_state_display }} - {{ customer.zipcode }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Delivery Profile -->
+            {% if delivery_profile %}
+            <div class="glass-card mb-4 shadow-sm border-0" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);">
+                <h5 class="fw-bold mb-3 text-success"><i class="fa-solid fa-truck-ramp-box me-2"></i> Staff Profile</h5>
+                <div class="d-flex align-items-center gap-4">
+                    <div class="flex-grow-1">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="small text-muted">STAFF NAME</div>
+                                <div class="fw-bold mb-3">{{ delivery_profile.name }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="small text-muted">MOBILE</div>
+                                <div class="fw-bold mb-3">{{ delivery_profile.mobile }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="small text-muted">EMPLOYMENT</div>
+                                <div>
+                                    {% if delivery_profile.is_active %}
+                                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1">ACTIVE</span>
+                                    {% else %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">INACTIVE</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <div class="small text-muted">PERFORMANCE</div>
+                                <div class="d-flex gap-4 mt-2">
+                                    <div class="text-center">
+                                        <div class="h5 fw-bold mb-0">₹{{ delivery_profile.total_earning|default:"0" }}</div>
+                                        <div class="small text-muted">Total Earnings</div>
+                                    </div>
+                                    <div class="text-center border-start ps-4">
+                                        <div class="h5 fw-bold mb-0">{{ delivery_profile.grouped_orders|length|default:"0" }}</div>
+                                        <div class="small text-muted">Deliveries</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                </div>
+            </div>
+
+            <!-- Orders Processed by Delivery Staff -->
+            <div class="glass-card mb-4 shadow-sm border-0">
+                <h5 class="fw-bold mb-3 text-success"><i class="fa-solid fa-list-check me-2"></i> Delivered Orders by Delivery Person</h5>
+                {% if delivery_profile.grouped_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small mb-0">
+                        <thead class="bg-light">
+                            <tr class="text-muted">
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th class="text-end">Earning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for group in delivery_profile.grouped_orders %}
+                            <tr>
+                                <td class="fw-bold">
+                                    <span class="badge bg-light text-dark border">#{{ group.id }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">{{ group.customer.name }}</div>
+                                    <div class="small text-muted">{{ group.customer.mobile }}</div>
+                                </td>
+                                <td>{{ group.ordered_date|date:"d M Y" }}</td>
+                                <td class="fw-bold">₹{{ group.total_amount }}</td>
+                                <td>
+                                    {% if group.status == 'Delivered' %}
+                                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1">Delivered</span>
+                                    {% elif group.status == 'Cancel' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">Cancelled</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">{{ group.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-bold text-success">₹{{ group.earning }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 italic mb-0">No delivery history found.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Recent Activity -->
+            <div class="glass-card shadow-sm border-0">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock-rotate-left text-info me-2"></i> Recent Order Activity (Top 10)</h5>
+                {% if recent_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small mb-0">
+                        <thead>
+                            <tr class="text-muted">
+                                <th>Order ID</th>
+                                <th>Product</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td class="fw-bold">
+                                    {% if order.payment and order.payment.razorpay_order_id %}
+                                    #{{ order.payment.razorpay_order_id|slice:"-8:"|upper }}
+                                    {% else %}
+                                    #ORD-{{ order.id }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.product.title }}</td>
+                                <td>{{ order.ordered_date|date:"d M Y" }}</td>
+                                <td class="fw-bold">₹{{ order.total_cost }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'Cancel' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 italic mb-0">No order history found for this user.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -129,19 +129,19 @@
         <tr>
             <td>
                 <div class="stat-value">Rs. {{ total_revenue }}</div>
-                <div class="stat-label">Total Revenue</div>
+                <div class="stat-label">Product Revenue</div>
             </td>
             <td>
-                <div class="stat-value">{{ total_orders_count }}</div>
-                <div class="stat-label">Total Orders</div>
+                <div class="stat-value">Rs. {{ total_delivery_charges }}</div>
+                <div class="stat-label">Delivery Charges (+)</div>
             </td>
             <td>
-                <div class="stat-value">Rs. {{ avg_order_value }}</div>
-                <div class="stat-label">Avg. Order Value</div>
+                <div class="stat-value" style="color: #e11d48;">Rs. {{ total_delivery_earnings }}</div>
+                <div class="stat-label">Earnings (-)</div>
             </td>
             <td>
-                <div class="stat-value">{{ total_items_sold }}</div>
-                <div class="stat-label">Items Sold</div>
+                <div class="stat-value" style="color: #8b5cf6;">Rs. {{ total_adjusted_revenue }}</div>
+                <div class="stat-label">Adjusted Revenue</div>
             </td>
         </tr>
     </table>
@@ -239,8 +239,20 @@
             </tr>
             {% endfor %}
             <tr class="total-row">
-                <td colspan="5" class="text-right"><strong>GRAND TOTAL</strong></td>
-                <td class="text-right"><strong>Rs. {{ total_revenue }}</strong></td>
+                <td colspan="5" class="text-right">Product Subtotal</td>
+                <td class="text-right">Rs. {{ total_revenue }}</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="5" class="text-right">Delivery Charges (+)</td>
+                <td class="text-right">Rs. {{ total_delivery_charges }}</td>
+            </tr>
+            <tr class="total-row">
+                <td colspan="5" class="text-right" style="color: #e11d48;">Delivery Boy Earnings (-)</td>
+                <td class="text-right" style="color: #e11d48;">Rs. {{ total_delivery_earnings }}</td>
+            </tr>
+            <tr class="total-row" style="background-color: #f3f4f6; font-size: 14px;">
+                <td colspan="5" class="text-right"><strong>ADJUSTED REVENUE (=)</strong></td>
+                <td class="text-right"><strong>Rs. {{ total_adjusted_revenue }}</strong></td>
             </tr>
         </tbody>
     </table>

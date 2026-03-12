@@ -91,6 +91,10 @@ urlpatterns = [
     path("admin-sales-report/", admin_sales_report, name="admin-sales-report"),
     path("admin-sales-report-pdf/", admin_sales_report_pdf, name="admin-sales-report-pdf"),
 
+    # User Management
+    path("admin-users/", admin_users, name="admin-users"),
+    path("admin-user-detail/<int:pk>/", admin_user_detail, name="admin-user-detail"),
+
     # Invoice Generation
     path("download-invoice/<int:payment_id>/", download_invoice, name="download-invoice"),
 
