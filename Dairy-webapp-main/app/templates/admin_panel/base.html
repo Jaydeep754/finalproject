@@ -131,6 +131,36 @@
             box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
         }
 
+        /* Notification Badge */
+        .notification-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: auto;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .nav-link.active .notification-badge {
+            background: #dc2626;
+        }
+
         /* Main Content */
         .main-content {
             margin-left: 260px;
@@ -379,6 +409,7 @@
                     <a href="{% url 'admin-orders' %}"
                         class="nav-link {% if 'order' in request.resolver_match.url_name and 'delivery-person' not in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-cart-shopping"></i> Orders
+                        {% if pending_orders_count > 0 %}<span class="notification-badge">{{ pending_orders_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -403,6 +434,7 @@
                     <a href="{% url 'admin-reviews' %}"
                         class="nav-link {% if 'review' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-star"></i> Reviews
+                        {% if reviews_count > 0 %}<span class="notification-badge">{{ reviews_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -415,6 +447,7 @@
                     <a href="{% url 'admin-complaints' %}"
                         class="nav-link {% if 'complaint' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-circle-exclamation"></i> Complaints
+                        {% if pending_complaints_count > 0 %}<span class="notification-badge">{{ pending_complaints_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">

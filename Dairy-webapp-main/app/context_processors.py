@@ -1,4 +1,4 @@
-from .models import Customer
+from .models import Customer, OrderPlaced, ProductReview, Complaint
 
 def regional_restriction(request):
     """
@@ -23,4 +23,25 @@ def regional_restriction(request):
         'is_in_ahmedabad': True, # Default to True for guests/staff to avoid blocking
         'has_any_address': False,
         'show_restricted_overlay': False
+    }
+
+def admin_notifications(request):
+    """
+    Provides notification counts for admin panel sidebar badges.
+    Counts: pending orders, product reviews, and pending complaints.
+    """
+    if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+        pending_orders_count = OrderPlaced.objects.filter(status='Pending').count()
+        reviews_count = ProductReview.objects.count()
+        pending_complaints_count = Complaint.objects.filter(status='Pending').count()
+        
+        return {
+            'pending_orders_count': pending_orders_count,
+            'reviews_count': reviews_count,
+            'pending_complaints_count': pending_complaints_count,
+        }
+    return {
+        'pending_orders_count': 0,
+        'reviews_count': 0,
+        'pending_complaints_count': 0,
     }
