@@ -5,10 +5,48 @@
 <div class="container my-5">
     <div class="row">
         <div class="col-sm-3 border-end">
+            <style>
+                .delivery-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #ef4444;
+                    color: white;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    margin-left: auto;
+                    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+                    animation: pulse 2s infinite;
+                }
+
+                @keyframes pulse {
+                    0%, 100% {
+                        opacity: 1;
+                    }
+                    50% {
+                        opacity: 0.7;
+                    }
+                }
+
+                .delivery-nav-item {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    width: 100%;
+                }
+            </style>
             <ul class="list-unstyled">
                 <li class="d-grid"><a href="{% url 'delivery-dashboard' %}" class="btn btn-primary mb-3">Dashboard</a>
                 </li>
-                <li class="d-grid"><a href="{% url 'delivery-orders' %}" class="btn mb-3">Assigned Orders</a></li>
+                <li class="d-grid">
+                    <a href="{% url 'delivery-orders' %}" class="btn mb-3 delivery-nav-item">
+                        <span>Assigned Orders</span>
+                        {% if delivery_pending_orders > 0 %}<span class="delivery-badge">{{ delivery_pending_orders }}</span>{% endif %}
+                    </a>
+                </li>
                 <li class="d-grid"><a href="{% url 'delivery-profile' %}" class="btn mb-3">Profile</a></li>
             </ul>
         </div>

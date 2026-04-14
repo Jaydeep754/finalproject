@@ -1666,113 +1666,167 @@ def delivery_order_detail(request, pk):
 @login_required
 @user_passes_test(is_delivery_person)
 def delivery_update_status(request, pk):
+    """
+    Simplified delivery status update with clean workflow:
+    1. Out for Delivery: Generate & send OTP
+    2. Failed Delivery: Mark failed & notify
+    3. Delivered: Mark delivered & send invoice (only after OTP verified)
+    """
     dp = request.user.deliveryperson
     order_instance = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
+    
     if request.method == 'POST':
-        # Prevent updating if order is already Delivered or Failed Delivery
         if order_instance.status in ['Delivered', 'Failed Delivery']:
-            return JsonResponse({'status': 'error', 'message': 'This order cannot be modified'}, status=400)
+            return JsonResponse({'status': 'error', 'message': 'Order is already finalized'}, status=400)
         
-        new_status = request.POST.get('status')
-        payment_collected = request.POST.get('payment_collected') == 'on'
+        action = request.POST.get('action')
         delivery_notes = request.POST.get('delivery_notes', '')
-
-        if not new_status:
-            return JsonResponse({'status': 'error', 'message': 'Status is required'}, status=400)
-
-        # Update entire group
+        payment_collected = request.POST.get('payment_collected') == 'on'
+        
+        # Get all orders in this payment group
         if order_instance.payment:
             group_items = OrderPlaced.objects.filter(payment=order_instance.payment, delivery_person=dp)
         else:
             group_items = OrderPlaced.objects.filter(id=pk, delivery_person=dp)
-
-        # If status is set to 'Out for Delivery', generate/send OTP
-        if new_status == 'Out for Delivery':
+        
+        # ACTION 1: Start Delivery (Assigned → Out for Delivery + Send OTP)
+        if action == 'start_delivery':
             import random
             for order in group_items:
                 otp = random.randint(100000, 999999)
                 order.delivery_otp = str(otp)
-                order.status = new_status
-                if delivery_notes:
-                    order.delivery_notes = delivery_notes
-                order.save()
-                # Send OTP to customer email
-                customer_email = order.customer.user.email
-                if customer_email:
-                    subject = 'Your Delivery OTP - MILK&MORE'
-                    message = f'Your OTP for order delivery confirmation is: {otp}\nPlease provide this OTP to the delivery person.'
-                    from_email = settings.DEFAULT_FROM_EMAIL
-                    try:
-                        send_mail(subject, message, from_email, [customer_email])
-                    except Exception as e:
-                        print(f"Error sending OTP email: {e}")
-            
-            if payment_collected:
-                for order in group_items:
-                    if order.payment:
-                        order.payment.paid = True
-                        order.payment.save()
-            
-            return JsonResponse({'status': 'success', 'message': 'OTP sent to customer email'})
-
-        # If status is set to 'Delivered', save payment status (OTP already verified by delivery_otp_verify)
-        if new_status == 'Delivered':
-            for order in group_items:
-                if payment_collected and order.payment:
-                    order.payment.paid = True
-                    order.payment.save()
-            
-            return JsonResponse({'status': 'success', 'message': 'Order marked as delivered with payment recorded'})
-
-        # If status is set to 'Failed Delivery', send refund notification email
-        if new_status == 'Failed Delivery':
-            for order in group_items:
-                order.status = new_status
+                order.status = 'Out for Delivery'
                 if delivery_notes:
                     order.delivery_notes = delivery_notes
                 order.save()
                 
-                # Send refund notification email to customer
+                # Send OTP email
                 customer_email = order.customer.user.email
                 if customer_email:
-                    subject = "Order Failed - Refund Notification - MILK&MORE"
-                    if order.payment and order.payment.razorpay_payment_status != 'Cash On Delivery':
+                    subject = 'Your Delivery OTP - MILK&MORE'
+                    message = f'Your OTP for order delivery confirmation is: {otp}\n\nPlease provide this OTP to the delivery person to confirm delivery.'
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    try:
+                        send_mail(subject, message, from_email, [customer_email])
+                    except Exception as e:
+                        print(f"Error sending OTP: {e}")
+            
+            return JsonResponse({'status': 'success', 'message': 'Delivery started! OTP sent to customer email'})
+        
+        # ACTION 2: Complete Delivery (Out for Delivery → Delivered, after OTP verified)
+        elif action == 'complete_delivery':
+            for order in group_items:
+                # Save payment status if collected
+                if payment_collected and order.payment:
+                    order.payment.paid = True
+                    order.payment.save()
+                
+                # Mark as delivered
+                order.status = 'Delivered'
+                order.delivery_otp = None  # Clear OTP
+                order.save()
+                
+                # Send thank you email with invoice
+                customer_email = order.customer.user.email
+                if customer_email:
+                    subject = "Order Delivered - Thank You! - MILK&MORE"
+                    message = (
+                        f"Hi {order.customer.name},\n\n"
+                        f"Your order has been successfully delivered! Thank you for choosing MILK&MORE.\n\n"
+                        f"Please find your invoice attached to this email.\n\n"
+                        f"We'd love your feedback! Please rate and review your products on our website.\n"
+                        f"For any issues, contact us at 9327558924.\n\n"
+                        f"Best regards,\nMILK&MORE Team"
+                    )
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    
+                    try:
+                        from django.core.mail import EmailMessage as DjangoEmailMessage
+                        
+                        # Generate Invoice PDF
+                        if order.payment:
+                            invoice_orders = OrderPlaced.objects.filter(payment=order.payment)
+                        else:
+                            invoice_orders = OrderPlaced.objects.filter(id=order.id)
+                        
+                        customer = order.customer
+                        subtotal = sum(o.total_cost for o in invoice_orders)
+                        shipping_fee = 0 if subtotal >= 500 else (40 if subtotal > 0 else 0)
+                        
+                        context = {
+                            'payment': order.payment,
+                            'orders': invoice_orders,
+                            'customer': customer,
+                            'subtotal': subtotal,
+                            'shipping_fee': shipping_fee,
+                        }
+                        
+                        template = get_template('invoice_template.html')
+                        html = template.render(context)
+                        pdf_buffer = BytesIO()
+                        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), pdf_buffer)
+                        
+                        email = DjangoEmailMessage(
+                            subject=subject,
+                            body=message,
+                            from_email=from_email,
+                            to=[customer_email],
+                        )
+                        
+                        if not pdf.err:
+                            email.attach(
+                                f'invoice_{order.payment.id if order.payment else order.id}.pdf',
+                                pdf_buffer.getvalue(),
+                                'application/pdf'
+                            )
+                        
+                        email.send()
+                    except Exception as e:
+                        print(f"Error sending delivery email: {e}")
+            
+            return JsonResponse({'status': 'success', 'message': 'Delivery completed! Customer notified'})
+        
+        # ACTION 3: Failed Delivery
+        elif action == 'failed_delivery':
+            for order in group_items:
+                order.status = 'Failed Delivery'
+                if delivery_notes:
+                    order.delivery_notes = delivery_notes
+                order.save()
+                
+                # Notify customer
+                customer_email = order.customer.user.email
+                if customer_email:
+                    subject = "Delivery Failed - We'll Help You - MILK&MORE"
+                    
+                    if order.payment and order.payment.razorpay_payment_status == 'Cash On Delivery':
                         message = (
                             f"Hi {order.customer.name},\n\n"
-                            f"Unfortunately, we couldn't deliver your order (#{order.id}) successfully. We sincerely apologize for the inconvenience.\n\n"
-                            f"Your payment has been processed online. We will refund your money back to your original payment method within 5-7 business days.\n\n"
-                            f"If you have any questions, please contact us at 9327558924 or reply to this email.\n\n"
-                            f"Thank you for your understanding.\n\n"
+                            f"We couldn't complete the delivery of your order (#{order.id}) today.\n\n"
+                            f"We'll reschedule your delivery shortly. Our team will contact you soon.\n\n"
+                            f"If you have questions, reach us at 9327558924.\n\n"
                             f"Best regards,\nMILK&MORE Team"
                         )
                     else:
                         message = (
                             f"Hi {order.customer.name},\n\n"
-                            f"Unfortunately, we couldn't deliver your order (#{order.id}) successfully. We sincerely apologize for the inconvenience.\n\n"
-                            f"If you have any questions, please contact us at 9327558924 or reply to this email.\n\n"
-                            f"Thank you for your understanding.\n\n"
+                            f"We couldn't complete the delivery of your order (#{order.id}) today.\n\n"
+                            f"Your online payment has been received. We'll refund it if you choose to cancel.\n"
+                            f"We'll reschedule your delivery shortly. Our team will contact you soon.\n\n"
+                            f"If you have questions, reach us at 9327558924.\n\n"
                             f"Best regards,\nMILK&MORE Team"
                         )
+                    
                     from_email = settings.DEFAULT_FROM_EMAIL
                     try:
                         send_mail(subject, message, from_email, [customer_email])
                     except Exception as e:
                         print(f"Error sending failed delivery email: {e}")
             
-            return JsonResponse({'status': 'success', 'message': 'Order marked as Failed Delivery. Customer notified.'})
-
-        # For other statuses, update as usual
-        for order in group_items:
-            order.status = new_status
-            if delivery_notes:
-                order.delivery_notes = delivery_notes
-            order.save()
-            if payment_collected:
-                if order.payment:
-                    order.payment.paid = True
-                    order.payment.save()
+            return JsonResponse({'status': 'success', 'message': 'Marked as failed. Customer notified'})
         
-        return JsonResponse({'status': 'success', 'message': f'Order status updated to {new_status}'})
+        return JsonResponse({'status': 'error', 'message': 'Invalid action'}, status=400)
+    
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 @login_required
@@ -1789,88 +1843,28 @@ def delivery_profile(request):
         form = DeliveryPersonProfileForm(instance=dp)
     return render(request, 'delivery/profile.html', locals())
 
-# OTP verification for delivery
+# OTP verification for delivery (only verifies, doesn't mark as delivered)
 @login_required
 @user_passes_test(is_delivery_person)
 def delivery_otp_verify(request, pk):
+    """
+    Only verify the OTP. Does NOT mark order as delivered.
+    The complete_delivery action in delivery_update_status handles the final step.
+    """
     dp = request.user.deliveryperson
     order = OrderPlaced.objects.get(pk=pk, delivery_person=dp)
+    
     if request.method == 'POST':
-        otp_input = request.POST.get('otp')
-        if order.delivery_otp and otp_input and otp_input == order.delivery_otp:
-            # Mark all items in this payment group as delivered
-            if order.payment:
-                group_items = OrderPlaced.objects.filter(payment=order.payment, delivery_person=dp)
-            else:
-                group_items = OrderPlaced.objects.filter(id=pk, delivery_person=dp)
-
-            for o in group_items:
-                o.status = 'Delivered'
-                o.delivery_otp = None
-                o.save()
-
-            # Send thank you email with Invoice PDF attached
-            customer_email = order.customer.user.email
-            if customer_email:
-                subject = "Order Delivered - Thank You! - MILK&MORE"
-                message = (
-                    f"Hi {order.customer.name},\n\n"
-                    f"Your order has been successfully delivered! Thank you for choosing MILK&MORE.\n\n"
-                    f"Please find your invoice attached to this email for your records.\n\n"
-                    f"We would love to hear your feedback! Please rate and review your product on our website.\n"
-                    f"If you faced any inconvenience, contact us at 9327558924 or add a complaint from your orders page.\n\n"
-                    f"Best regards,\nMILK&MORE Team"
-                )
-                from_email = settings.DEFAULT_FROM_EMAIL
-                try:
-                    from django.core.mail import EmailMessage as DjangoEmailMessage
-
-                    # Generate Invoice PDF using the existing invoice template
-                    payment = order.payment
-                    if payment:
-                        invoice_orders = OrderPlaced.objects.filter(payment=payment)
-                    else:
-                        invoice_orders = OrderPlaced.objects.filter(id=order.id)
-                    customer = order.customer
-
-                    subtotal = sum(o.total_cost for o in invoice_orders)
-                    shipping_fee = 0 if subtotal >= 500 else (40 if subtotal > 0 else 0)
-
-                    context = {
-                        'payment': payment,
-                        'orders': invoice_orders,
-                        'customer': customer,
-                        'subtotal': subtotal,
-                        'shipping_fee': shipping_fee,
-                    }
-                    template = get_template('invoice_template.html')
-                    html = template.render(context)
-
-                    pdf_buffer = BytesIO()
-                    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), pdf_buffer)
-
-                    email = DjangoEmailMessage(
-                        subject=subject,
-                        body=message,
-                        from_email=from_email,
-                        to=[customer_email],
-                    )
-
-                    if not pdf.err:
-                        email.attach(
-                            f'invoice_{payment.id if payment else order.id}.pdf',
-                            pdf_buffer.getvalue(),
-                            'application/pdf'
-                        )
-
-                    email.send()
-                except Exception as e:
-                    print(f"Error sending delivery confirmation email with invoice: {e}")
-            
-            # Return JSON response for AJAX
-            return JsonResponse({'status': 'success', 'message': 'OTP verified successfully'})
+        otp_input = request.POST.get('otp', '').strip()
+        
+        # Verify OTP matches
+        if order.delivery_otp and otp_input == order.delivery_otp:
+            # OTP is valid - return success to show payment section in UI
+            # The actual status change happens in complete_delivery action
+            return JsonResponse({'status': 'success', 'message': 'OTP verified! Proceed to complete delivery'})
         else:
-            return JsonResponse({'status': 'error', 'message': 'Invalid OTP'}, status=400)
+            return JsonResponse({'status': 'error', 'message': 'Invalid OTP. Please try again'}, status=400)
+    
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 # Admin side Delivery Person Management
@@ -2057,3 +2051,33 @@ def admin_user_detail(request, pk):
         role = "Registered User"
         
     return render(request, 'admin_panel/user_detail.html', locals())
+
+@login_required
+def mark_notification_seen(request):
+    """
+    AJAX endpoint to mark a notification as seen.
+    Called when user visits a particular admin page.
+    Stores notification state in session so it persists across page views.
+    """
+    if request.method == 'POST':
+        notification_type = request.POST.get('type', '').lower()
+        
+        # Validate notification type
+        valid_types = ['orders', 'reviews', 'complaints', 'customers', 'payments']
+        if notification_type not in valid_types:
+            return JsonResponse({'status': 'error', 'message': 'Invalid notification type'}, status=400)
+        
+        # Mark this notification type as seen in the session
+        if 'seen_notifications' not in request.session:
+            request.session['seen_notifications'] = {}
+        
+        request.session['seen_notifications'][notification_type] = True
+        request.session.modified = True
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'{notification_type.capitalize()} marked as seen',
+            'notification_type': notification_type
+        })
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)

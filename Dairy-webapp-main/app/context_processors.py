@@ -1,4 +1,4 @@
-from .models import Customer, OrderPlaced, ProductReview, Complaint
+from .models import Customer, OrderPlaced, ProductReview, Complaint, Payment
 
 def regional_restriction(request):
     """
@@ -28,20 +28,33 @@ def regional_restriction(request):
 def admin_notifications(request):
     """
     Provides notification counts for admin panel sidebar badges.
-    Counts: pending orders, product reviews, and pending complaints.
+    Counts: pending orders, product reviews, pending complaints, new customers, new payments, sales reports.
+    Only shows counts if the notification hasn't been marked as "seen" in the session.
     """
     if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
-        pending_orders_count = OrderPlaced.objects.filter(status='Pending').count()
-        reviews_count = ProductReview.objects.count()
-        pending_complaints_count = Complaint.objects.filter(status='Pending').count()
+        # Get from session which notifications have been "seen"
+        seen_notifications = request.session.get('seen_notifications', {})
+        
+        # Get all notification counts
+        pending_orders_count = OrderPlaced.objects.filter(status='Pending').count() if not seen_notifications.get('orders') else 0
+        reviews_count = ProductReview.objects.count() if not seen_notifications.get('reviews') else 0
+        pending_complaints_count = Complaint.objects.filter(status='Pending').count() if not seen_notifications.get('complaints') else 0
+        new_customers_count = Customer.objects.filter(user__date_joined__gte=request.session.get('last_admin_visit', '2000-01-01')).count() if 'last_admin_visit' not in request.session and not seen_notifications.get('customers') else 0
+        new_payments_count = Payment.objects.filter(paid=False).count() if not seen_notifications.get('payments') else 0
         
         return {
             'pending_orders_count': pending_orders_count,
             'reviews_count': reviews_count,
             'pending_complaints_count': pending_complaints_count,
+            'new_customers_count': new_customers_count,
+            'new_payments_count': new_payments_count,
+            'seen_notifications': seen_notifications,
         }
     return {
         'pending_orders_count': 0,
         'reviews_count': 0,
         'pending_complaints_count': 0,
+        'new_customers_count': 0,
+        'new_payments_count': 0,
+        'seen_notifications': {},
     }

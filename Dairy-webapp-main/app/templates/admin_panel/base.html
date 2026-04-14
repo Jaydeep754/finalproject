@@ -136,29 +136,55 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: #ef4444;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             font-size: 0.75rem;
             font-weight: 700;
             margin-left: auto;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-            animation: pulse 2s infinite;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+            animation: badgePulse 2s infinite;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        @keyframes pulse {
+        @keyframes badgePulse {
             0%, 100% {
                 opacity: 1;
+                transform: scale(1);
             }
             50% {
-                opacity: 0.7;
+                opacity: 0.8;
+                transform: scale(1.1);
             }
+        }
+
+        @keyframes badgeFade {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+
+        .notification-badge.fade-out {
+            animation: badgeFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .nav-link.active .notification-badge {
-            background: #dc2626;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.6);
+        }
+
+        .notification-badge:hover {
+            transform: scale(1.15);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.6);
         }
 
         /* Main Content */
@@ -416,6 +442,7 @@
                     <a href="{% url 'admin-customers' %}"
                         class="nav-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-users"></i> Customers
+                        {% if new_customers_count > 0 %}<span class="notification-badge">{{ new_customers_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -428,6 +455,7 @@
                     <a href="{% url 'admin-payments' %}"
                         class="nav-link {% if 'payment' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-credit-card"></i> Payments
+                        {% if new_payments_count > 0 %}<span class="notification-badge">{{ new_payments_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -454,6 +482,7 @@
                     <a href="{% url 'admin-delivery-persons' %}"
                         class="nav-link {% if 'delivery-person' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-truck"></i> Delivery Staff
+                        {% if pending_delivery_count > 0 or new_delivery_staff_count > 0 %}<span class="notification-badge">{{ pending_delivery_count|add:new_delivery_staff_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -514,6 +543,118 @@
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Notification Badge Removal Script -->
+    <script>
+        // Function to get CSRF token from cookie
+        function getCSRFTokenFromCookie() {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 10) === ('csrftoken' + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Map of URL patterns to notification types
+            const urlToNotificationMap = {
+                'admin-orders': 'orders',
+                'admin-customers': 'customers',
+                'admin-payments': 'payments',
+                'admin-reviews': 'reviews',
+                'admin-complaints': 'complaints',
+            };
+
+            // Get current page URL
+            const currentUrl = window.location.pathname;
+
+            // Function to remove badge with animation
+            function removeBadge(badge) {
+                badge.classList.add('fade-out');
+                setTimeout(() => {
+                    badge.style.display = 'none';
+                }, 500);
+            }
+
+            // Function to mark notifications as seen on server
+            function markNotificationSeenOnServer(notificationType) {
+                const csrftoken = getCSRFTokenFromCookie();
+                
+                fetch('{% url "mark-notification-seen" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrftoken,
+                    },
+                    body: 'type=' + encodeURIComponent(notificationType)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Notification marked as seen:', data);
+                })
+                .catch(error => {
+                    console.error('Error marking notification as seen:', error);
+                });
+            }
+
+            // Function to check current page and remove appropriate badge
+            function handlePageLoad() {
+                // Find which notification type matches the current page
+                let notificationType = null;
+                for (const [urlPattern, type] of Object.entries(urlToNotificationMap)) {
+                    if (currentUrl.includes(urlPattern)) {
+                        notificationType = type;
+                        break;
+                    }
+                }
+
+                if (notificationType) {
+                    // Find the badge element for this notification type
+                    const badgeSelectors = {
+                        'orders': 'a[href*="admin-orders"] .notification-badge',
+                        'customers': 'a[href*="admin-customers"] .notification-badge',
+                        'payments': 'a[href*="admin-payments"] .notification-badge',
+                        'reviews': 'a[href*="admin-reviews"] .notification-badge',
+                        'complaints': 'a[href*="admin-complaints"] .notification-badge',
+                    };
+
+                    const selector = badgeSelectors[notificationType];
+                    if (selector) {
+                        const badges = document.querySelectorAll(selector);
+                        if (badges.length > 0) {
+                            // Animate removal of all matching badges
+                            badges.forEach(badge => {
+                                removeBadge(badge);
+                            });
+                            
+                            // Tell the server this notification has been seen
+                            markNotificationSeenOnServer(notificationType);
+                        }
+                    }
+                }
+            }
+
+            // Mark notifications as seen when page loads (with small delay for DOM to be ready)
+            setTimeout(handlePageLoad, 500);
+
+            // Also allow clicking on badge to immediately remove it
+            const allBadges = document.querySelectorAll('.notification-badge');
+            allBadges.forEach(badge => {
+                badge.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    removeBadge(this);
+                });
+            });
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 

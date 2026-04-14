@@ -7,333 +7,135 @@
         <div class="col-sm-3 border-end">
             <ul class="list-unstyled">
                 <li class="d-grid"><a href="{% url 'delivery-dashboard' %}" class="btn mb-3">Dashboard</a></li>
-                <li class="d-grid"><a href="{% url 'delivery-orders' %}" class="btn btn-primary mb-3">Assigned
-                        Orders</a></li>
+                <li class="d-grid"><a href="{% url 'delivery-orders' %}" class="btn btn-primary mb-3">Assigned Orders</a></li>
                 <li class="d-grid"><a href="{% url 'delivery-profile' %}" class="btn mb-3">Profile</a></li>
             </ul>
         </div>
+        
         <div class="col-sm-9 ps-5">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{% url 'delivery-orders' %}">Orders</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">#{{order_id_display}}</li>
+                    <li class="breadcrumb-item active">#{{order_id_display}}</li>
                 </ol>
             </nav>
-            <h2 class="mb-4">Order Details #{{order_id_display}}</h2>
+            <h2 class="mb-4">Order #{{order_id_display}}</h2>
 
             <div class="row g-4">
+                <!-- Left Column: Product & Customer Info -->
                 <div class="col-md-7">
+                    <!-- Customer Info Card -->
                     <div class="card shadow-sm border-0 mb-4">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3 border-bottom pb-2">Customer Information</h5>
-                            <p><strong>Name:</strong> {{order.customer.name}}</p>
-                            <p><strong>Phone:</strong> <a href="tel:{{order.customer.mobile}}"
-                                    class="text-decoration-none"><i
-                                        class="bi bi-telephone-fill me-2"></i>{{order.customer.mobile}}</a></p>
-                            <p><strong>Address:</strong><br>
-                                {{order.customer.locality}}<br>
-                                {{order.customer.city}}, {{order.customer.state}} - {{order.customer.zipcode}}
-                            </p>
-                            <div class="d-grid mt-3">
-                                <a href="https://www.google.com/maps/search/?api=1&query={{order.customer.locality}} {{order.customer.city}}"
-                                    target="_blank" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-map me-2"></i>Open in Maps
-                                </a>
-                            </div>
+                            <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-person-circle me-2"></i>Customer</h5>
+                            <p class="mb-2"><strong>Name:</strong> {{order.customer.name}}</p>
+                            <p class="mb-3"><strong>Phone:</strong> <a href="tel:{{order.customer.mobile}}" class="text-decoration-none"><i class="bi bi-telephone-fill me-1"></i>{{order.customer.mobile}}</a></p>
+                            <p class="mb-2"><strong>Address:</strong></p>
+                            <p class="text-muted mb-3">{{order.customer.locality}}<br>{{order.customer.city}}, {{order.customer.state}} - {{order.customer.zipcode}}</p>
+                            <a href="https://www.google.com/maps/search/?api=1&query={{order.customer.locality}} {{order.customer.city}}" target="_blank" class="btn btn-outline-secondary btn-sm w-100">
+                                <i class="bi bi-map me-2"></i>Open in Maps
+                            </a>
                         </div>
                     </div>
 
+                    <!-- Products Card -->
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3 border-bottom pb-2">Product Details</h5>
+                            <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-box-seam me-2"></i>Products</h5>
                             {% for item in group_items %}
-                            <div class="d-flex align-items-center gap-3 {% if not forloop.last %}mb-3 border-bottom pb-3{% endif %}">
-                                <img src="{{item.product.product_image.url}}" alt="" width="60" class="rounded shadow-sm">
-                                <div>
-                                    <h6 class="fw-bold mb-0 text-dark">{{item.product.title}}</h6>
+                            <div class="d-flex gap-3 {% if not forloop.last %}mb-3 pb-3 border-bottom{% endif %}">
+                                <img src="{{item.product.product_image.url}}" alt="" width="60" class="rounded">
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1">{{item.product.title}}</h6>
                                     <small class="text-muted">{{item.size}} | Qty: {{item.quantity}}</small>
-                                    <p class="mb-0 fw-bold mt-1 text-primary">₹{{item.total_cost}}</p>
+                                    <p class="mb-0 fw-bold text-primary mt-1">₹{{item.total_cost}}</p>
                                 </div>
                             </div>
                             {% endfor %}
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted">Payment Method:</span>
-                                <span class="badge bg-light text-dark border">{{order.payment.razorpay_payment_status}}</span>
+                            <hr class="my-3">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>Payment Method:</span>
+                                <span class="badge bg-light text-dark">{{order.payment.razorpay_payment_status}}</span>
                             </div>
                             {% if order.payment.razorpay_payment_status == 'Cash On Delivery' %}
-                            <div class="alert alert-warning mt-3 mb-0 py-3 shadow-sm border-0 d-flex align-items-center gap-3 rounded-3" style="background-color: #fff9e6;">
-                                <div class="bg-warning text-white p-2 rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="bi bi-cash-stack fs-5"></i>
-                                </div>
-                                <div>
-                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Total Cash to Collect</small>
-                                    <span class="fw-bold fs-4">₹{{total_group_amount}}</span>
-                                </div>
+                            <div class="alert alert-warning mb-0 py-2">
+                                <i class="bi bi-cash-stack me-2"></i>
+                                <strong>Cash to Collect: ₹{{total_group_amount}}</strong>
                             </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
+                <!-- Right Column: Actions & Status -->
                 <div class="col-md-5">
-                    {% if order.status == 'Delivered' or order.status == 'Cancel' or order.status == 'Failed Delivery' %}
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body p-4 text-center d-flex flex-column justify-content-center">
+                    {% if order.status == 'Delivered' or order.status == 'Failed Delivery' %}
+                    <!-- ORDER COMPLETED -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-4 text-center">
                             {% if order.status == 'Failed Delivery' %}
-                            <div class="mb-4">
-                                <i class="bi bi-x-circle-fill display-2 text-danger"></i>
-                            </div>
-                            <h4 class="fw-bold mb-2 text-danger">Delivery Failed</h4>
-                            <p class="text-muted">This order could not be completed. No further changes are allowed.</p>
-                            <div class="alert alert-danger mt-4 mb-0" role="alert">
-                                <i class="bi bi-info-circle-fill me-2"></i>
-                                <strong>Order Locked</strong> - Customer has been notified about the failed delivery and refund status.
-                            </div>
+                                <div class="mb-3"><i class="bi bi-x-circle-fill display-4 text-danger"></i></div>
+                                <h4 class="fw-bold text-danger">Delivery Failed</h4>
+                                <p class="text-muted small">Customer has been notified. Order is locked.</p>
                             {% else %}
-                            <div class="mb-4">
-                                <i class="bi bi-check-circle-fill display-2 text-success"></i>
-                            </div>
-                            <h4 class="fw-bold mb-2">Order {{order.status}}</h4>
-                            <p class="text-muted">This order journey is complete and cannot be modified.</p>
-
-                            {% if order.delivery_notes %}
-                            <div class="mt-4 p-3 bg-light rounded text-start border-start border-4 border-primary">
-                                <small class="fw-bold text-uppercase letter-spacing-1 d-block mb-2"
-                                    style="font-size: 0.7rem;">Final Delivery Notes</small>
-                                <p class="mb-0 small text-secondary italic">"{{order.delivery_notes}}"</p>
-                            </div>
-                            {% endif %}
-                            
-                            {% if order.status == 'Delivered' %}
-                            <div class="mt-4 p-3 rounded-4 shadow-sm border-0 d-flex align-items-center gap-3" style="background: var(--accent); border: 1px solid var(--primary-light) !important;">
-                                <div class="bg-primary text-white p-2 rounded-circle shadow-sm" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="bi bi-wallet2 fs-5"></i>
+                                <div class="mb-3"><i class="bi bi-check-circle-fill display-4 text-success"></i></div>
+                                <h4 class="fw-bold text-success">Delivered</h4>
+                                <p class="text-muted small">Order delivery completed successfully.</p>
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <small class="text-muted d-block mb-1">Your Earning (₹30 + 5%)</small>
+                                    <h5 class="fw-bold text-primary mb-0">₹{{group_earning}}</h5>
                                 </div>
-                                <div class="text-start">
-                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Earning from this Order (₹30 + 5%)</small>
-                                    <span class="fw-bold fs-3 text-primary">₹{{group_earning}}</span>
-                                </div>
-                            </div>
-                            {% endif %}
                             {% endif %}
                         </div>
                     </div>
-                    {% else %}
+
+                    {% elif order.status == 'Assigned' %}
+                    <!-- STEP 1: START DELIVERY -->
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-4">
-                            <!-- Status Badge and Update Section like Admin Panel -->
-                            <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
-                                <div>
-                                    <span class="small fw-bold text-uppercase text-muted" style="font-size: 0.7rem; letter-spacing: 1px;">Current Status</span>
-                                    <div class="mt-2">
-                                        <span class="status-badge fs-6 {% if order.status == 'Out for Delivery' %}badge bg-warning text-dark{% else %}badge bg-info{% endif %}">
-                                            {{ order.status }}
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div class="update-action-box p-2 rounded-4 bg-light border d-flex gap-2 align-items-center">
-                                    <form id="deliveryForm" class="d-flex gap-2 align-items-center m-0">
-                                        {% csrf_token %}
-                                        <select id="id_status" name="status" class="form-select form-select-sm border-0 bg-white shadow-sm" style="width: 180px; border-radius: 12px;">
-                                            <option value="Assigned" {% if order.status == 'Assigned' %}selected{% endif %}>Assigned</option>
-                                            <option value="Out for Delivery" {% if order.status == 'Out for Delivery' %}selected{% endif %}>Out for Delivery</option>
-                                            <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                            <option value="Failed Delivery" {% if order.status == 'Failed Delivery' %}selected{% endif %}>Failed Delivery</option>
-                                        </select>
-                                        <button type="button" id="updateStatusBtn" class="btn btn-sm btn-primary rounded-pill px-4 shadow-none" style="min-width: 100px;">Update</button>
-                                    </form>
-                                </div>
+                            <div class="text-center mb-4">
+                                <div class="badge bg-info mb-2">Step 1 of 3</div>
+                                <h5 class="fw-bold">Ready to Start Delivery?</h5>
+                                <p class="text-muted small">Click below to begin delivery and send OTP to customer</p>
                             </div>
-
-                            <!-- OTP Input Form - Shows only when status is set to Delivered -->
-                            <div id="otpFormContainer" style="display: none;" class="mt-4">
-                                <div class="alert alert-info d-flex align-items-center gap-2 mb-4" role="alert">
-                                    <i class="bi bi-info-circle"></i>
-                                    <span>Enter the OTP from the customer to confirm delivery</span>
-                                </div>
-                                <h5 class="fw-bold mb-3">Enter Delivery OTP</h5>
-                                <form id="otpForm">
-                                    {% csrf_token %}
-                                    <div class="mb-3">
-                                        <label for="otp" class="form-label">OTP from Customer</label>
-                                        <!-- OTP Error Message -->
-                                        <div id="otpErrorMessage" style="display: none;" class="alert alert-danger d-flex align-items-center gap-2 mb-2" role="alert">
-                                            <i class="bi bi-exclamation-circle-fill"></i>
-                                            <span id="otpErrorText"></span>
-                                        </div>
-                                        <input type="text" class="form-control form-control-lg text-center" id="otp" name="otp" maxlength="6" placeholder="Enter 6-digit OTP" inputmode="numeric" style="letter-spacing: 8px; font-size: 1.5rem;">
-                                    </div>
-                                    <button type="submit" class="btn btn-success w-100 btn-lg">Verify OTP</button>
-                                </form>
-                            </div>
-
-                            <!-- Payment Collected Checkbox - Shows only after OTP is verified -->
-                            <div id="paymentCheckboxContainer" style="display: none;" class="mt-4">
-                                <hr>
-                                {% if order.payment.razorpay_payment_status == 'Cash On Delivery' %}
-                                <div class="mb-3 form-check p-3 bg-light rounded border border-success shadow-sm">
-                                    <input type="checkbox" class="form-check-input" id="paymentCheckbox" name="payment_collected">
-                                    <label class="form-check-label ms-2 fw-bold text-dark" for="paymentCheckbox">
-                                        <i class="bi bi-cash-coin me-1"></i> Payment Collected?
-                                    </label>
-                                </div>
-                                <small class="text-muted d-block">Please confirm if you have received the cash payment for this delivery.</small>
-                                {% else %}
-                                <div class="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                    <span><strong>Payment Already Completed Online</strong> — No cash collection needed.</span>
-                                </div>
-                                {% endif %}
-                                <button type="button" id="confirmDeliveryBtn" class="btn btn-success w-100 mt-3">Confirm Delivery</button>
-                            </div>
-
-                            <script>
-                                document.addEventListener('DOMContentLoaded', function () {
-                                    const statusSelect = document.getElementById('id_status');
-                                    const updateStatusBtn = document.getElementById('updateStatusBtn');
-                                    const otpFormContainer = document.getElementById('otpFormContainer');
-                                    const paymentCheckboxContainer = document.getElementById('paymentCheckboxContainer');
-                                    const otpForm = document.getElementById('otpForm');
-                                    const otpInput = document.getElementById('otp');
-                                    const deliveryForm = document.getElementById('deliveryForm');
-                                    const confirmDeliveryBtn = document.getElementById('confirmDeliveryBtn');
-                                    const otpErrorMessage = document.getElementById('otpErrorMessage');
-                                    const otpErrorText = document.getElementById('otpErrorText');
-
-                                    // Update status when Update button is clicked
-                                    updateStatusBtn.addEventListener('click', function(e) {
-                                        e.preventDefault();
-                                        const newStatus = statusSelect.value;
-                                        
-                                        // Auto-save "Out for Delivery" status
-                                        if (newStatus === 'Out for Delivery') {
-                                            fetch('{% url "delivery-update-status" order.id %}', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                                                },
-                                                body: 'status=' + encodeURIComponent(newStatus)
-                                            })
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data.status === 'success') {
-                                                    location.reload();
-                                                }
-                                            })
-                                            .catch(error => console.error('Error:', error));
-                                        } 
-                                        else if (newStatus === 'Delivered') {
-                                            // Show OTP form for Delivered status
-                                            otpFormContainer.style.display = 'block';
-                                            otpFormContainer.classList.add('animate__animated', 'animate__fadeIn');
-                                            deliveryForm.style.display = 'none';
-                                            paymentCheckboxContainer.style.display = 'none';
-                                            otpErrorMessage.style.display = 'none';
-                                            otpInput.value = '';
-                                            otpInput.focus();
-                                        } 
-                                        else {
-                                            // For other statuses, just update
-                                            fetch('{% url "delivery-update-status" order.id %}', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                                                },
-                                                body: 'status=' + encodeURIComponent(newStatus)
-                                            })
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data.status === 'success') {
-                                                    location.reload();
-                                                }
-                                            })
-                                            .catch(error => console.error('Error:', error));
-                                        }
-                                    });
-
-                                    // Handle OTP form submission
-                                    otpForm.addEventListener('submit', function(e) {
-                                        e.preventDefault();
-                                        const otp = otpInput.value;
-
-                                        if (!otp || otp.length !== 6) {
-                                            otpErrorText.textContent = 'Please enter a valid 6-digit OTP';
-                                            otpErrorMessage.style.display = 'flex';
-                                            otpInput.focus();
-                                            return;
-                                        }
-
-                                        // Verify OTP
-                                        fetch('{% url "delivery-otp-verify" order.id %}', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/x-www-form-urlencoded',
-                                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                                            },
-                                            body: 'otp=' + encodeURIComponent(otp)
-                                        })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            if (data.status === 'success') {
-                                                // OTP verified, show payment checkbox
-                                                otpFormContainer.style.display = 'none';
-                                                paymentCheckboxContainer.style.display = 'block';
-                                                paymentCheckboxContainer.classList.add('animate__animated', 'animate__fadeIn');
-                                            } else {
-                                                // Show error dynamically
-                                                otpErrorText.textContent = 'Invalid OTP. Please try again.';
-                                                otpErrorMessage.style.display = 'flex';
-                                                otpInput.value = '';
-                                                otpInput.focus();
-                                            }
-                                        })
-                                        .catch(error => {
-                                            otpErrorText.textContent = 'Error verifying OTP. Please try again.';
-                                            otpErrorMessage.style.display = 'flex';
-                                            console.error('Error:', error);
-                                        });
-                                    });
-
-                                    // Handle final confirmation (after OTP and payment checkbox)
-                                    confirmDeliveryBtn.addEventListener('click', function(e) {
-                                        e.preventDefault();
-                                        const paymentCollected = document.getElementById('paymentCheckbox').checked;
-                                        
-                                        // Save payment collected status
-                                        fetch('{% url "delivery-update-status" order.id %}', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/x-www-form-urlencoded',
-                                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                                            },
-                                            body: 'status=Delivered&payment_collected=' + (paymentCollected ? 'on' : '')
-                                        })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            if (data.status === 'success') {
-                                                setTimeout(() => {
-                                                    location.reload();
-                                                }, 1000);
-                                            }
-                                        })
-                                        .catch(error => console.error('Error:', error));
-                                    });
-
-                                    // Prevent leaving page with pending OTP
-                                    window.addEventListener('beforeunload', function(e) {
-                                        if (otpFormContainer.style.display === 'block' && !otpInput.value) {
-                                            e.preventDefault();
-                                            e.returnValue = 'You must enter the OTP to proceed. Are you sure you want to leave?';
-                                        }
-                                    });
-                                });
-                            </script>
+                            <button type="button" class="btn btn-primary w-100 btn-lg" id="startDeliveryBtn">
+                                <i class="bi bi-play-circle me-2"></i>Start Delivery
+                            </button>
+                            <button type="button" class="btn btn-outline-danger w-100 mt-2" id="failDeliveryBtn">
+                                <i class="bi bi-x-circle me-2"></i>Mark as Failed
+                            </button>
+                            <div id="startDeliveryMsg" class="alert mt-3 mb-0" style="display:none;"></div>
                         </div>
                     </div>
+
+                    {% elif order.status == 'Out for Delivery' %}
+                    <!-- STEP 2: VERIFY OTP -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-4">
+                                <div class="badge bg-warning text-dark mb-2">Step 2 of 3</div>
+                                <h5 class="fw-bold">Verify Customer OTP</h5>
+                                <p class="text-muted small">OTP has been sent to customer's email</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="otpInput" class="form-label fw-bold">Enter 6-Digit OTP</label>
+                                <input type="text" class="form-control form-control-lg text-center" id="otpInput" 
+                                       maxlength="6" placeholder="------" inputmode="numeric" 
+                                       style="letter-spacing: 12px; font-size: 1.8rem;">
+                                <div id="otpError" class="alert alert-danger mt-2 mb-0" style="display:none;"></div>
+                            </div>
+
+                            <button type="button" class="btn btn-success w-100 btn-lg" id="verifyOtpBtn">
+                                <i class="bi bi-shield-check me-2"></i>Verify OTP
+                            </button>
+
+                            <button type="button" class="btn btn-outline-danger w-100 mt-2" id="failDeliveryBtn2">
+                                <i class="bi bi-x-circle me-2"></i>Mark as Failed
+                            </button>
+                        </div>
+                    </div>
+
                     {% endif %}
                 </div>
             </div>
@@ -341,38 +143,483 @@
     </div>
 </div>
 
+<!-- Payment & Completion Modal (shown after OTP verified) -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div class="badge bg-success mb-2">Step 3 of 3</div>
+                    <h5 class="fw-bold">Complete Delivery</h5>
+                </div>
+
+                <!-- COD Payment Section -->
+                <div id="codSection" style="display:none;" class="mb-4">
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Confirm cash collection before completing delivery
+                    </div>
+                    <div class="card border-success mb-3">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-cash-stack me-2 text-warning"></i>Cash to Collect</h6>
+                            <p class="display-6 fw-bold text-success mb-0">₹<span id="amountText">0</span></p>
+                        </div>
+                    </div>
+                    <div class="form-check p-3 bg-light rounded border-2 border-success">
+                        <input class="form-check-input" type="checkbox" id="paymentCheckbox">
+                        <label class="form-check-label fw-bold" for="paymentCheckbox">
+                            <i class="bi bi-check-circle me-2"></i>I have collected the payment
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">Confirm this before proceeding</small>
+                </div>
+
+                <!-- Online Payment Section -->
+                <div id="onlineSection" style="display:none;" class="mb-4">
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>Payment already completed online</strong>
+                        <br><small>No cash collection needed</small>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <button type="button" class="btn btn-success w-100 btn-lg" id="completeDeliveryBtn">
+                    <i class="bi bi-check-circle me-2"></i>Complete Delivery
+                </button>
+                <button type="button" class="btn btn-secondary w-100 mt-2" data-bs-dismiss="modal">
+                    Go Back
+                </button>
+                <div id="paymentMsg" class="alert mt-3 mb-0" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-    .update-action-box {
-        transition: all 0.3s ease;
+    .form-control::-webkit-outer-spin-button,
+    .form-control::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
-    
-    .update-action-box:focus-within {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
-    }
-    
-    .status-badge {
-        font-weight: 600;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-    }
-    
-    #id_status {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    }
-    
-    #id_status:focus {
-        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
-        border-color: var(--primary);
-    }
-    
-    #updateStatusBtn {
-        transition: all 0.2s ease;
-    }
-    
-    #updateStatusBtn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    .form-control[type=number] {
+        -moz-appearance: textfield;
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const orderId = {{order.id}};
+    const csrfTokenFunc = function() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    };
+    const csrfToken = csrfTokenFunc();
+    const paymentType = '{{order.payment.razorpay_payment_status}}';
+    const totalAmount = {{total_group_amount}};
+
+    // ==================== STEP 1: START DELIVERY ====================
+    document.getElementById('startDeliveryBtn')?.addEventListener('click', function() {
+        showConfirmation(
+            'Start Delivery?',
+            'This will send an OTP to the customer\'s email address',
+            'Start',
+            () => startDelivery()
+        );
+    });
+
+    // ==================== STEP 2: VERIFY OTP ====================
+    const otpInput = document.getElementById('otpInput');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const otpError = document.getElementById('otpError');
+
+    otpInput?.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        otpError.style.display = 'none';
+    });
+
+    verifyOtpBtn?.addEventListener('click', function() {
+        const otp = otpInput.value.trim();
+        if (otp.length !== 6) {
+            otpError.textContent = '⚠ Please enter a valid 6-digit OTP';
+            otpError.style.display = 'block';
+            otpInput.focus();
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Verifying...';
+
+        fetch(`/delivery-otp-verify/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: `otp=${otp}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                otpError.style.display = 'none';
+                // Show payment modal
+                showPaymentModal();
+            } else {
+                otpError.textContent = '✕ ' + data.message;
+                otpError.style.display = 'block';
+                otpInput.value = '';
+                otpInput.focus();
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-shield-check me-2"></i>Verify OTP';
+            }
+        })
+        .catch(err => {
+            otpError.textContent = '✕ Error verifying OTP. Try again.';
+            otpError.style.display = 'block';
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-shield-check me-2"></i>Verify OTP';
+        });
+    });
+
+    // ==================== STEP 3: PAYMENT & COMPLETE ====================
+    function showPaymentModal() {
+        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        
+        // Show appropriate section based on payment type
+        if (paymentType === 'Cash On Delivery') {
+            document.getElementById('codSection').style.display = 'block';
+            document.getElementById('onlineSection').style.display = 'none';
+            document.getElementById('amountText').textContent = totalAmount;
+        } else {
+            document.getElementById('codSection').style.display = 'none';
+            document.getElementById('onlineSection').style.display = 'block';
+        }
+        
+        modal.show();
+    }
+
+    document.getElementById('completeDeliveryBtn')?.addEventListener('click', function() {
+        // For COD, check if payment is confirmed
+        if (paymentType === 'Cash On Delivery') {
+            if (!document.getElementById('paymentCheckbox').checked) {
+                const msg = document.getElementById('paymentMsg');
+                msg.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Please confirm payment collection';
+                msg.className = 'alert alert-warning';
+                msg.style.display = 'block';
+                return;
+            }
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Completing...';
+        const msg = document.getElementById('paymentMsg');
+
+        const formData = new FormData();
+        formData.append('action', 'complete_delivery');
+        if (paymentType === 'Cash On Delivery') {
+            formData.append('payment_collected', 'on');
+        }
+
+        fetch(`/delivery-update-status/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                msg.innerHTML = '<i class="bi bi-check-circle me-2"></i>✓ Delivery completed! Reloading...';
+                msg.className = 'alert alert-success';
+                msg.style.display = 'block';
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                msg.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>${data.message}`;
+                msg.className = 'alert alert-danger';
+                msg.style.display = 'block';
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-check-circle me-2"></i>Complete Delivery';
+            }
+        });
+    });
+
+    // ==================== FAILED DELIVERY (always available) ====================
+    function markAsFailed() {
+        showConfirmation(
+            'Mark as Failed Delivery?',
+            'The customer will be notified about the failed delivery',
+            'Confirm',
+            () => performFailedDelivery()
+        );
+    }
+
+    document.getElementById('failDeliveryBtn')?.addEventListener('click', markAsFailed);
+    document.getElementById('failDeliveryBtn2')?.addEventListener('click', markAsFailed);
+
+    // ==================== CUSTOM CONFIRMATION MODAL ====================
+    function showConfirmation(title, message, actionText, callback) {
+        const modal = document.getElementById('confirmationModal');
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmActionBtn').textContent = actionText;
+
+        document.getElementById('confirmCancelBtn').onclick = () => {
+            modal.style.display = 'none';
+        };
+
+        document.getElementById('confirmActionBtn').onclick = () => {
+            modal.style.display = 'none';
+            callback();
+        };
+
+        modal.style.display = 'flex';
+    }
+
+    function startDelivery() {
+        const btn = document.getElementById('startDeliveryBtn');
+        btn.disabled = true;
+        const msg = document.getElementById('startDeliveryMsg');
+        msg.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Starting delivery...';
+        msg.className = 'alert alert-info';
+        msg.style.display = 'block';
+
+        fetch(`/delivery-update-status/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: 'action=start_delivery'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                msg.innerHTML = '<i class="bi bi-check-circle me-2"></i>✓ OTP sent! Page reloading...';
+                msg.className = 'alert alert-success';
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                msg.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>${data.message}`;
+                msg.className = 'alert alert-danger';
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            msg.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Error: ' + err;
+            msg.className = 'alert alert-danger';
+            btn.disabled = false;
+        });
+    }
+
+    function performFailedDelivery() {
+        fetch(`/delivery-update-status/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            body: 'action=failed_delivery'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showSuccessToast('✓ Order marked as failed. Customer notified.');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showErrorToast('✕ ' + data.message);
+            }
+        })
+        .catch(err => {
+            showErrorToast('Error marking delivery as failed');
+        });
+    }
+
+    function showSuccessToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'delivery-toast success';
+        toast.innerHTML = `<i class="bi bi-check-circle me-2"></i>${msg}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function showErrorToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'delivery-toast error';
+        toast.innerHTML = `<i class="bi bi-exclamation-circle me-2"></i>${msg}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('confirmationModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+});
+</script>
+
+<!-- Custom Confirmation Modal -->
+<div id="confirmationModal" class="confirmation-modal">
+    <div class="confirmation-content">
+        <div class="confirmation-header">
+            <h3 id="confirmTitle">Confirm Action</h3>
+        </div>
+        <div class="confirmation-body">
+            <p id="confirmMessage">Are you sure?</p>
+        </div>
+        <div class="confirmation-footer">
+            <button id="confirmCancelBtn" class="btn btn-secondary">Cancel</button>
+            <button id="confirmActionBtn" class="btn btn-primary">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Confirmation Modal */
+    .confirmation-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.2s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .confirmation-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .confirmation-header {
+        margin-bottom: 1rem;
+    }
+
+    .confirmation-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: #2c3e50;
+    }
+
+    .confirmation-body {
+        margin-bottom: 1.5rem;
+    }
+
+    .confirmation-body p {
+        margin: 0;
+        color: #666;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .confirmation-footer {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+
+    .confirmation-footer .btn {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.9rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .confirmation-footer .btn-secondary {
+        background-color: #e9ecef;
+        color: #495057;
+    }
+
+    .confirmation-footer .btn-secondary:hover {
+        background-color: #dee2e6;
+        transform: translateY(-1px);
+    }
+
+    .confirmation-footer .btn-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .confirmation-footer .btn-primary:hover {
+        background-color: #0b5ed7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    }
+
+    /* Toast Notifications */
+    .delivery-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .delivery-toast.success {
+        background-color: #198754;
+    }
+
+    .delivery-toast.error {
+        background-color: #dc3545;
+    }
+</style>
+
 {% endblock main %}

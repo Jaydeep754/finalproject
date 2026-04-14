@@ -97,6 +97,9 @@ urlpatterns = [
 
     # Invoice Generation
     path("download-invoice/<int:payment_id>/", download_invoice, name="download-invoice"),
+    
+    # AJAX - Mark notification as seen
+    path("ajax-mark-notification-seen/", mark_notification_seen, name="mark-notification-seen"),
 
 ]+static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
