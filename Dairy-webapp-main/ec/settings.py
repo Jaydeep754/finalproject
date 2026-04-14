@@ -155,7 +155,7 @@ EMAIL_HOST_PASSWORD = 'zsitlpvivpwbwsju'
 DEFAULT_FROM_EMAIL = 'Milk & More <modijaydeep44@gmail.com>'
 
 #Razor Pay
-RAZOR_KEY_ID = "rzp_test_SK47QSEDOgiG11"
-RAZOR_KEY_SECRET = "VQZwOdLR7LIs7Kk93Mm64IQI"
+RAZOR_KEY_ID = "rzp_test_SdMKR5abUg9vSb"
+RAZOR_KEY_SECRET = "iWKwuY1JDskDOPnSuwMesufv"
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
