@@ -435,14 +435,12 @@
                     <a href="{% url 'admin-orders' %}"
                         class="nav-link {% if 'order' in request.resolver_match.url_name and 'delivery-person' not in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-cart-shopping"></i> Orders
-                        {% if pending_orders_count > 0 %}<span class="notification-badge">{{ pending_orders_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="{% url 'admin-customers' %}"
                         class="nav-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-users"></i> Customers
-                        {% if new_customers_count > 0 %}<span class="notification-badge">{{ new_customers_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -455,14 +453,12 @@
                     <a href="{% url 'admin-payments' %}"
                         class="nav-link {% if 'payment' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-credit-card"></i> Payments
-                        {% if new_payments_count > 0 %}<span class="notification-badge">{{ new_payments_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="{% url 'admin-reviews' %}"
                         class="nav-link {% if 'review' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-star"></i> Reviews
-                        {% if reviews_count > 0 %}<span class="notification-badge">{{ reviews_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
@@ -475,14 +471,12 @@
                     <a href="{% url 'admin-complaints' %}"
                         class="nav-link {% if 'complaint' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-circle-exclamation"></i> Complaints
-                        {% if pending_complaints_count > 0 %}<span class="notification-badge">{{ pending_complaints_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="{% url 'admin-delivery-persons' %}"
                         class="nav-link {% if 'delivery-person' in request.resolver_match.url_name %}active{% endif %}">
                         <i class="fa-solid fa-truck"></i> Delivery Staff
-                        {% if pending_delivery_count > 0 or new_delivery_staff_count > 0 %}<span class="notification-badge">{{ pending_delivery_count|add:new_delivery_staff_count }}</span>{% endif %}
                     </a>
                 </li>
                 <li class="nav-item">

@@ -236,8 +236,11 @@ class CustomerRegistrationView(View):
         cartitem = cart_num(request)
         form = CustomerRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('login')
+            user = form.save()
+            # Auto-login the user after successful registration
+            login(request, user)
+            messages.success(request, "Registration successful! Welcome to our dairy store.")
+            return redirect('home')
         else:
             messages.warning(request,"Invalid data Inputs! ")
         return render(request,"signup.html",locals())
@@ -913,8 +916,16 @@ def admin_dashboard(request):
     pending_orders = len([g for g in all_grouped if g['status'] == 'Pending'])
     
     # Latest 5 grouped orders
-    latest_orders_qs = OrderPlaced.objects.all().select_related('product', 'payment', 'customer').order_id_display = None # Dummy for locals
     latest_orders = get_grouped_orders(OrderPlaced.objects.all().order_by('-ordered_date'))[:5]
+    
+    # Count unviewed/new activity for sidebar badges
+    pending_orders_count = pending_orders
+    new_customers_count = Customer.objects.filter(viewed_by_admin=False).count()
+    new_payments_count = Payment.objects.filter(viewed_by_admin=False).count()
+    reviews_count = ProductReview.objects.filter(viewed_by_admin=False).count()
+    pending_complaints_count = Complaint.objects.filter(status='Pending', viewed_by_admin=False).count()
+    pending_delivery_count = OrderPlaced.objects.filter(status='Assigned', delivery_person__isnull=False).count()
+    new_delivery_staff_count = DeliveryPerson.objects.filter(viewed_by_admin=False).count()
     
     return render(request, 'admin_panel/dashboard.html', locals())
 
@@ -1668,7 +1679,7 @@ def delivery_order_detail(request, pk):
 def delivery_update_status(request, pk):
     """
     Simplified delivery status update with clean workflow:
-    1. Out for Delivery: Generate & send OTP
+    1. Out for Delivery: Generate & send OTP (ONE OTP per order group)
     2. Failed Delivery: Mark failed & notify
     3. Delivered: Mark delivered & send invoice (only after OTP verified)
     """
@@ -1692,24 +1703,46 @@ def delivery_update_status(request, pk):
         # ACTION 1: Start Delivery (Assigned → Out for Delivery + Send OTP)
         if action == 'start_delivery':
             import random
+            # Generate ONE OTP for the entire order group
+            otp = random.randint(100000, 999999)
+            customer_email = order_instance.customer.user.email
+            
+            # Update all items in group with same OTP and status
             for order in group_items:
-                otp = random.randint(100000, 999999)
                 order.delivery_otp = str(otp)
                 order.status = 'Out for Delivery'
                 if delivery_notes:
                     order.delivery_notes = delivery_notes
                 order.save()
+            
+            # Send ONE email with ALL products grouped together
+            if customer_email:
+                subject = 'Your Delivery OTP - MILK&MORE'
                 
-                # Send OTP email
-                customer_email = order.customer.user.email
-                if customer_email:
-                    subject = 'Your Delivery OTP - MILK&MORE'
-                    message = f'Your OTP for order delivery confirmation is: {otp}\n\nPlease provide this OTP to the delivery person to confirm delivery.'
-                    from_email = settings.DEFAULT_FROM_EMAIL
-                    try:
-                        send_mail(subject, message, from_email, [customer_email])
-                    except Exception as e:
-                        print(f"Error sending OTP: {e}")
+                # Build product details list
+                product_details = ''
+                total_amount = 0
+                for order in group_items:
+                    unit = "Liter" if order.product.category in ["MK", "LS", "BS"] else "kg"
+                    product_details += (
+                        f'- {order.product.title}: {order.quantity} {unit} @ ₹{order.price}\n'
+                    )
+                    total_amount += order.price
+                
+                message = (
+                    f'Hi {order_instance.customer.name},\n\n'
+                    f'Your order is on the way!\n\n'
+                    f'Product Details:\n'
+                    f'{product_details}\n'
+                    f'Total Amount: ₹{total_amount}\n\n'
+                    f'Your OTP for delivery confirmation is: {otp}\n\n'
+                    f'Please provide this OTP to the delivery person to confirm delivery.'
+                )
+                from_email = settings.DEFAULT_FROM_EMAIL
+                try:
+                    send_mail(subject, message, from_email, [customer_email])
+                except Exception as e:
+                    print(f"Error sending OTP: {e}")
             
             return JsonResponse({'status': 'success', 'message': 'Delivery started! OTP sent to customer email'})
         

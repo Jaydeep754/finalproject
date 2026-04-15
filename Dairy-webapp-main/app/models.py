@@ -150,6 +150,7 @@ class ProductReview(models.Model):
     rating = models.IntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    viewed_by_admin = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} - {self.product.title} - {self.rating}*"
@@ -163,6 +164,7 @@ class Complaint(models.Model):
     status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('Resolved', 'Resolved')], default='Pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    viewed_by_admin = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Complaint by {self.user.username} on Order #{self.order.id}"

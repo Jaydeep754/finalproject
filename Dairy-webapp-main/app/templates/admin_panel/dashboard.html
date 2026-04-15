@@ -7,73 +7,85 @@
 {% block content %}
 <div class="row g-4 mb-4">
     <div class="col-md-3">
-        <div class="glass-card stat-card">
-            <div class="stat-icon icon-emerald">
-                <i class="fa-solid fa-indian-rupee-sign"></i>
+        <a href="{% url 'admin-payments' %}" class="text-decoration-none">
+            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div class="stat-icon icon-emerald">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div class="stat-info">
+                    <h2>₹{{ total_revenue|floatformat:2 }}</h2>
+                    <p>Total Revenue</p>
+                </div>
             </div>
-            <div class="stat-info">
-                <h2>₹{{ total_revenue|floatformat:2 }}</h2>
-                <p>Total Revenue</p>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="glass-card stat-card">
-            <div class="stat-icon icon-blue">
-                <i class="fa-solid fa-users"></i>
+        <a href="{% url 'admin-customers' %}" class="text-decoration-none">
+            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div class="stat-icon icon-blue">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h2>{{ total_customers }}</h2>
+                    <p>Total Customers</p>
+                </div>
             </div>
-            <div class="stat-info">
-                <h2>{{ total_customers }}</h2>
-                <p>Total Customers</p>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="glass-card stat-card">
-            <div class="stat-icon icon-gold">
-                <i class="fa-solid fa-cart-shopping"></i>
+        <a href="{% url 'admin-orders' %}" class="text-decoration-none">
+            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div class="stat-icon icon-gold">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div class="stat-info">
+                    <h2>{{ total_orders }}</h2>
+                    <p>Total Orders</p>
+                </div>
             </div>
-            <div class="stat-info">
-                <h2>{{ total_orders }}</h2>
-                <p>Total Orders</p>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3">
-        <div class="glass-card stat-card">
-            <div class="stat-icon bg-danger-subtle text-danger">
-                <i class="fa-solid fa-clock"></i>
+        <a href="{% url 'admin-orders' %}" class="text-decoration-none">
+            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div class="stat-icon bg-danger-subtle text-danger">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h2>{{ pending_orders }}</h2>
+                    <p>Pending Orders</p>
+                </div>
             </div>
-            <div class="stat-info">
-                <h2>{{ pending_orders }}</h2>
-                <p>Pending Orders</p>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
 
 <div class="row g-4 mb-5">
     <div class="col-md-6">
-        <div class="glass-card stat-card">
-            <div class="stat-icon icon-emerald">
-                <i class="fa-solid fa-box-open"></i>
+        <a href="{% url 'admin-products' %}" class="text-decoration-none">
+            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div class="stat-icon icon-emerald">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div class="stat-info">
+                    <h2>{{ total_products }}</h2>
+                    <p>Total Products</p>
+                </div>
             </div>
-            <div class="stat-info">
-                <h2>{{ total_products }}</h2>
-                <p>Total Products</p>
-            </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-6">
-        <div class="glass-card stat-card">
-            <div class="stat-icon icon-gold">
-                <i class="fa-solid fa-truck-fast"></i>
+        <a href="{% url 'admin-orders' %}" class="text-decoration-none">
+            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <div class="stat-icon icon-gold">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <div class="stat-info">
+                    <h2>{{ total_orders }}</h2>
+                    <p>All Time Orders</p>
+                </div>
             </div>
-            <div class="stat-info">
-                <h2>{{ total_orders }}</h2>
-                <p>All Time Orders</p>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
 
