@@ -135,6 +135,7 @@ class OrderPlaced(models.Model):
     cust_id = models.PositiveSmallIntegerField()
     delivery_person = models.ForeignKey(DeliveryPerson, on_delete=models.SET_NULL, null=True, blank=True)
     delivery_notes = models.TextField(null=True, blank=True)
+    assigned_date = models.DateTimeField(null=True, blank=True)
 
     # OTP for delivery confirmation
     delivery_otp = models.CharField(max_length=6, null=True, blank=True)

@@ -90,21 +90,25 @@
                     </div>
 
                     {% elif order.status == 'Assigned' %}
-                    <!-- STEP 1: START DELIVERY -->
+                    <!-- STEP 1: ACCEPT OR REJECT ORDER -->
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-4">
                             <div class="text-center mb-4">
-                                <div class="badge bg-info mb-2">Step 1 of 3</div>
-                                <h5 class="fw-bold">Ready to Start Delivery?</h5>
-                                <p class="text-muted small">Click below to begin delivery and send OTP to customer</p>
+                                <div class="badge bg-warning text-dark mb-2">Awaiting Your Decision</div>
+                                <h5 class="fw-bold">Accept This Order?</h5>
+                                <p class="text-muted small">Review order details and confirm if you can deliver</p>
                             </div>
-                            <button type="button" class="btn btn-primary w-100 btn-lg" id="startDeliveryBtn">
-                                <i class="bi bi-play-circle me-2"></i>Start Delivery
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <small>Once you accept, customer will receive an OTP via email. They will share it with you to verify delivery.</small>
+                            </div>
+                            <button type="button" class="btn btn-success w-100 btn-lg" id="acceptOrderBtn">
+                                <i class="bi bi-check-circle me-2"></i>Accept Order
                             </button>
-                            <button type="button" class="btn btn-outline-danger w-100 mt-2" id="failDeliveryBtn">
-                                <i class="bi bi-x-circle me-2"></i>Mark as Failed
+                            <button type="button" class="btn btn-outline-danger w-100 mt-2" id="rejectOrderBtn">
+                                <i class="bi bi-x-circle me-2"></i>Reject & Return to Admin
                             </button>
-                            <div id="startDeliveryMsg" class="alert mt-3 mb-0" style="display:none;"></div>
+                            <div id="acceptRejectMsg" class="alert mt-3 mb-0" style="display:none;"></div>
                         </div>
                     </div>
 
@@ -228,6 +232,97 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = csrfTokenFunc();
     const paymentType = '{{order.payment.razorpay_payment_status}}';
     const totalAmount = {{total_group_amount}};
+
+    // ==================== ACCEPT/REJECT ORDER (if Assigned) ====================
+    document.getElementById('acceptOrderBtn')?.addEventListener('click', function() {
+        showConfirmation(
+            'Accept This Order?',
+            'Once accepted, you can begin the delivery process',
+            'Accept',
+            () => acceptOrder()
+        );
+    });
+
+    document.getElementById('rejectOrderBtn')?.addEventListener('click', function() {
+        showConfirmation(
+            'Reject This Order?',
+            'This order will be returned to admin for reassignment. Are you sure?',
+            'Reject',
+            () => rejectOrder()
+        );
+    });
+
+    function acceptOrder() {
+        const acceptBtn = document.getElementById('acceptOrderBtn');
+        const msg = document.getElementById('acceptRejectMsg');
+        acceptBtn.disabled = true;
+        acceptBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
+
+        fetch(`/delivery-accept-order/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                msg.innerHTML = '<i class="bi bi-check-circle me-2"></i>✓ ' + data.message;
+                msg.className = 'alert alert-success';
+                msg.style.display = 'block';
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                msg.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>' + (data.message || 'Error accepting order');
+                msg.className = 'alert alert-danger';
+                msg.style.display = 'block';
+                acceptBtn.disabled = false;
+                acceptBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Accept Order';
+            }
+        })
+        .catch(err => {
+            msg.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Error accepting order. Try again.';
+            msg.className = 'alert alert-danger';
+            msg.style.display = 'block';
+            acceptBtn.disabled = false;
+            acceptBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Accept Order';
+        });
+    }
+
+    function rejectOrder() {
+        const rejectBtn = document.getElementById('rejectOrderBtn');
+        const msg = document.getElementById('acceptRejectMsg');
+        rejectBtn.disabled = true;
+        rejectBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
+
+        fetch(`/delivery-reject-order/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                msg.innerHTML = '<i class="bi bi-check-circle me-2"></i>✓ ' + data.message;
+                msg.className = 'alert alert-info';
+                msg.style.display = 'block';
+                setTimeout(() => window.location.href = '/delivery-orders/', 1500);
+            } else {
+                msg.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>' + (data.message || 'Error rejecting order');
+                msg.className = 'alert alert-danger';
+                msg.style.display = 'block';
+                rejectBtn.disabled = false;
+                rejectBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Reject & Return to Admin';
+            }
+        })
+        .catch(err => {
+            msg.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Error rejecting order. Try again.';
+            msg.className = 'alert alert-danger';
+            msg.style.display = 'block';
+            rejectBtn.disabled = false;
+            rejectBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Reject & Return to Admin';
+        });
+    }
 
     // ==================== STEP 1: START DELIVERY ====================
     document.getElementById('startDeliveryBtn')?.addEventListener('click', function() {

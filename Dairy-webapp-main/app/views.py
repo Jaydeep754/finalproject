@@ -1287,10 +1287,47 @@ def admin_sales_report_pdf(request):
     messages.error(request, "Error generating sales report PDF.")
     return redirect('admin-sales-report')
 
+def parse_size_to_units(size_str):
+    """
+    Parse size string and convert to numeric value
+    Examples: '2L' -> 2, '500ml' -> 0.5, '1kg' -> 1, '500gm' -> 0.5
+    """
+    if not size_str:
+        return 1
+    
+    size_str = str(size_str).lower().replace(' ', '')
+    size_map = {
+        '500gm': 0.5, '500g': 0.5, '0.5kg': 0.5,
+        '1kg': 1.0, '1.0kg': 1.0,
+        '2kg': 2.0, '2.0kg': 2.0,
+        '500ml': 0.5, '0.5l': 0.5,
+        '1l': 1.0, '1lt': 1.0, '1.0l': 1.0,
+        '2l': 2.0, '2lt': 2.0, '2.0l': 2.0
+    }
+    
+    # Try exact match first
+    if size_str in size_map:
+        return size_map[size_str]
+        
+    # Pattern matching for more flexibility
+    for key, val in size_map.items():
+        if key in size_str:
+            return val
+            
+    return 1.0
+
 def restore_stock(order):
+    """
+    Restore stock when order is cancelled
+    Calculates total volume/weight: quantity × size_multiplier
+    Example: 5 units × 2L = 10L restored
+    """
     product = order.product
-    product.quantity += order.quantity
+    size_value = parse_size_to_units(order.size)
+    restore_quantity = order.quantity * size_value
+    product.quantity += restore_quantity
     product.save()
+    print(f"✓ Stock Restored - Order #{order.id}: +{restore_quantity} units (qty: {order.quantity} × size: {size_value})")
 
 def send_cancellation_email(order):
     user_email = order.user.email
@@ -1316,6 +1353,32 @@ def admin_update_order(request, pk):
     order_instance = OrderPlaced.objects.get(pk=pk)
     if request.method == 'POST':
         new_status = request.POST.get('status')
+        old_status = order_instance.status
+        
+        # Status transition validation rules
+        # 1. If order is already cancelled, no further updates allowed
+        if old_status == 'Cancel':
+            messages.error(request, "Cannot update a cancelled order!")
+            return redirect('admin-orders')
+        
+        # 2. If order is "Assigned", admin cannot change it - only delivery person can accept/reject
+        if old_status == 'Assigned':
+            messages.error(request, "This order is awaiting acceptance from the delivery person. Status cannot be changed by admin.")
+            return redirect('admin-orders')
+        
+        # 3. If delivery person is assigned and status is "Out for Delivery", allow transitions
+        if order_instance.delivery_person and old_status == 'Out for Delivery' and new_status in ['Delivered', 'Failed Delivery']:
+            # Allow delivery completion transitions
+            pass
+        # 4. Cannot change to "Assigned" from admin (only via assign function)
+        elif new_status == 'Assigned':
+            messages.error(request, "Cannot manually set status to Assigned. Use the Assign button instead.")
+            return redirect('admin-orders')
+        
+        # 5. If status is Packed, cannot go back to Pending
+        if old_status == 'Packed' and new_status == 'Pending':
+            messages.error(request, "Cannot revert from Packed to Pending!")
+            return redirect('admin-orders')
         
         # Get all orders in this group
         if order_instance.payment:
@@ -1324,8 +1387,7 @@ def admin_update_order(request, pk):
             group_items = OrderPlaced.objects.filter(id=pk)
 
         for order in group_items:
-            old_status = order.status
-            if new_status == 'Cancel' and old_status != 'Cancel':
+            if new_status == 'Cancel' and order.status != 'Cancel':
                 restore_stock(order)
                 send_cancellation_email(order)
             
@@ -1636,7 +1698,12 @@ def delivery_dashboard(request):
 def delivery_orders(request):
     dp = request.user.deliveryperson
     query = request.GET.get('q')
+    status_filter = request.GET.get('status')
     queryset = OrderPlaced.objects.filter(delivery_person=dp).select_related('product', 'payment', 'customer').order_by('-ordered_date')
+    
+    # Filter by status if provided
+    if status_filter:
+        queryset = queryset.filter(status=status_filter)
     
     if query:
         queryset = queryset.filter(
@@ -1707,6 +1774,11 @@ def delivery_update_status(request, pk):
             otp = random.randint(100000, 999999)
             customer_email = order_instance.customer.user.email
             
+            # Check if customer email exists
+            if not customer_email:
+                print(f"ERROR: Customer {order_instance.customer.name} has no email registered")
+                return JsonResponse({'status': 'error', 'message': 'Customer email not registered. Cannot send OTP.'}, status=400)
+            
             # Update all items in group with same OTP and status
             for order in group_items:
                 order.delivery_otp = str(otp)
@@ -1716,33 +1788,37 @@ def delivery_update_status(request, pk):
                 order.save()
             
             # Send ONE email with ALL products grouped together
-            if customer_email:
-                subject = 'Your Delivery OTP - MILK&MORE'
-                
-                # Build product details list
-                product_details = ''
-                total_amount = 0
-                for order in group_items:
-                    unit = "Liter" if order.product.category in ["MK", "LS", "BS"] else "kg"
-                    product_details += (
-                        f'- {order.product.title}: {order.quantity} {unit} @ ₹{order.price}\n'
-                    )
-                    total_amount += order.price
-                
-                message = (
-                    f'Hi {order_instance.customer.name},\n\n'
-                    f'Your order is on the way!\n\n'
-                    f'Product Details:\n'
-                    f'{product_details}\n'
-                    f'Total Amount: ₹{total_amount}\n\n'
-                    f'Your OTP for delivery confirmation is: {otp}\n\n'
-                    f'Please provide this OTP to the delivery person to confirm delivery.'
+            subject = 'Your Delivery OTP - MILK&MORE'
+            
+            # Build product details list
+            product_details = ''
+            total_amount = 0
+            for order in group_items:
+                unit = "Liter" if order.product.category in ["MK", "LS", "BS"] else "kg"
+                product_details += (
+                    f'- {order.product.title}: {order.quantity} {unit} @ ₹{order.price}\n'
                 )
-                from_email = settings.DEFAULT_FROM_EMAIL
-                try:
-                    send_mail(subject, message, from_email, [customer_email])
-                except Exception as e:
-                    print(f"Error sending OTP: {e}")
+                total_amount += order.price
+            
+            message = (
+                f'Hi {order_instance.customer.name},\n\n'
+                f'Your order is on the way!\n\n'
+                f'Product Details:\n'
+                f'{product_details}\n'
+                f'Total Amount: ₹{total_amount}\n\n'
+                f'Your OTP for delivery confirmation is: {otp}\n\n'
+                f'Please provide this OTP to the delivery person to confirm delivery.\n\n'
+                f'Thank you for shopping with MILK&MORE!'
+            )
+            from_email = settings.DEFAULT_FROM_EMAIL
+            try:
+                send_mail(subject, message, from_email, [customer_email], fail_silently=False)
+                print(f"SUCCESS: OTP email sent to {customer_email}")
+            except Exception as e:
+                print(f"ERROR sending OTP email to {customer_email}: {str(e)}")
+                # Still mark as out for delivery even if email fails
+                # Return error to user but OTP is saved in database
+                return JsonResponse({'status': 'warning', 'message': f'Order status updated but OTP delivery failed. Please contact admin. Error: {str(e)}'}, status=400)
             
             return JsonResponse({'status': 'success', 'message': 'Delivery started! OTP sent to customer email'})
         
@@ -1876,6 +1952,150 @@ def delivery_profile(request):
         form = DeliveryPersonProfileForm(instance=dp)
     return render(request, 'delivery/profile.html', locals())
 
+@login_required
+@user_passes_test(is_delivery_person)
+def delivery_accept_order(request, pk):
+    """Accept an assigned order, change status to 'Out for Delivery' and send OTP"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+    dp = request.user.deliveryperson
+    
+    try:
+        order_instance = OrderPlaced.objects.get(pk=pk, delivery_person=dp, status='Assigned')
+    except OrderPlaced.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Order not found or not in Assigned status'}, status=400)
+    
+    try:
+        import random
+        from django.core.mail import send_mail
+        from django.conf import settings
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Generate OTP
+        otp = random.randint(100000, 999999)
+        print(f"\n=== OTP GENERATION ===")
+        print(f"Generated OTP: {otp}")
+        
+        # Get customer email
+        customer_email = order_instance.customer.user.email
+        print(f"Customer: {order_instance.customer.name}")
+        print(f"Customer Email: {customer_email}")
+        
+        if not customer_email:
+            print("ERROR: Customer email not registered")
+            return JsonResponse({'status': 'error', 'message': 'Customer email not registered. Cannot send OTP.'}, status=400)
+        
+        # Update all orders in this group to "Out for Delivery" and set OTP
+        if order_instance.payment:
+            group_items = OrderPlaced.objects.filter(payment=order_instance.payment, status='Assigned')
+        else:
+            group_items = OrderPlaced.objects.filter(id=pk, status='Assigned')
+        
+        for order in group_items:
+            order.status = 'Out for Delivery'
+            order.delivery_otp = str(otp)
+            order.save()
+        
+        # Send OTP email
+        subject = 'Your Delivery OTP - MILK&MORE'
+        
+        # Build product details list
+        product_details = ''
+        total_amount = 0
+        for order in group_items:
+            unit = "Liter" if order.product.category in ["MK", "LS", "BS"] else "kg"
+            product_details += (
+                f'- {order.product.title}: {order.quantity} {unit} @ ₹{order.price}\n'
+            )
+            total_amount += order.price
+        
+        message = (
+            f'Hi {order_instance.customer.name},\n\n'
+            f'Your order is on the way!\n\n'
+            f'Product Details:\n'
+            f'{product_details}\n'
+            f'Total Amount: ₹{total_amount}\n\n'
+            f'Your OTP for delivery confirmation is: {otp}\n\n'
+            f'Please provide this OTP to the delivery person to confirm delivery.\n\n'
+            f'Thank you for shopping with MILK&MORE!'
+        )
+        
+        from_email = settings.DEFAULT_FROM_EMAIL
+        print(f"\n=== EMAIL CONFIGURATION ===")
+        print(f"FROM: {from_email}")
+        print(f"TO: {customer_email}")
+        print(f"EMAIL_HOST: {settings.EMAIL_HOST}")
+        print(f"EMAIL_PORT: {settings.EMAIL_PORT}")
+        print(f"EMAIL_USE_SSL: {settings.EMAIL_USE_SSL}")
+        print(f"EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
+        
+        try:
+            print(f"\nAttempting to send email...")
+            result = send_mail(
+                subject, 
+                message, 
+                from_email, 
+                [customer_email], 
+                fail_silently=False
+            )
+            print(f"Email send result: {result}")
+            print(f"SUCCESS: OTP email sent to {customer_email}")
+            print(f"=== END OTP GENERATION ===\n")
+            return JsonResponse({'status': 'success', 'message': 'Order accepted! OTP sent to customer email.'})
+        except Exception as e:
+            print(f"ERROR: Failed to send email: {str(e)}")
+            print(f"Error Type: {type(e).__name__}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
+            print(f"=== END OTP GENERATION ===\n")
+            
+            # Revert the status change if email fails
+            for order in group_items:
+                order.status = 'Assigned'
+                order.delivery_otp = None
+                order.save()
+            return JsonResponse({'status': 'error', 'message': f'Failed to send OTP email: {str(e)}'}, status=400)
+    
+    except Exception as e:
+        print(f"Unexpected error in delivery_accept_order: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@login_required
+@user_passes_test(is_delivery_person)
+def delivery_reject_order(request, pk):
+    """Reject an assigned order and return it to Packed status"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    
+    dp = request.user.deliveryperson
+    
+    try:
+        order_instance = OrderPlaced.objects.get(pk=pk, delivery_person=dp, status='Assigned')
+    except OrderPlaced.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Order not found or not in Assigned status'}, status=400)
+    
+    try:
+        # Update all orders in this group back to "Packed" and remove delivery person
+        if order_instance.payment:
+            group_items = OrderPlaced.objects.filter(payment=order_instance.payment, status='Assigned')
+        else:
+            group_items = OrderPlaced.objects.filter(id=pk, status='Assigned')
+        
+        for order in group_items:
+            order.status = 'Packed'
+            order.delivery_person = None
+            order.assigned_date = None
+            order.save()
+        
+        return JsonResponse({'status': 'success', 'message': 'Order rejected and returned to admin for reassignment.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
 # OTP verification for delivery (only verifies, doesn't mark as delivered)
 @login_required
 @user_passes_test(is_delivery_person)
@@ -1978,11 +2198,15 @@ def admin_assign_order(request, pk):
         dp_id = request.POST.get('delivery_person')
         if dp_id:
             dp = DeliveryPerson.objects.get(id=dp_id)
+            from django.utils import timezone
             for order in group_items:
                 order.delivery_person = dp
+                # Set status to "Assigned" when assigning to delivery person
                 order.status = 'Assigned'
+                # Set assigned_date for tracking purposes
+                order.assigned_date = timezone.now()
                 order.save()
-            messages.success(request, f"Order group assigned to {dp.name} successfully!")
+            messages.success(request, f"Order group assigned to {dp.name}. Awaiting acceptance from delivery person!")
             return redirect('admin-orders')
     return render(request, 'admin_panel/assign_order.html', locals())
 
@@ -2114,3 +2338,37 @@ def mark_notification_seen(request):
         })
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+@user_passes_test(is_admin)
+def test_email(request):
+    """Test email configuration - Admin only"""
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
+    admin_email = request.user.email
+    
+    print("\n=== EMAIL TEST ===")
+    print(f"FROM: {settings.DEFAULT_FROM_EMAIL}")
+    print(f"TO: {admin_email}")
+    print(f"EMAIL_HOST: {settings.EMAIL_HOST}")
+    print(f"EMAIL_PORT: {settings.EMAIL_PORT}")
+    print(f"EMAIL_USE_SSL: {settings.EMAIL_USE_SSL}")
+    print(f"EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
+    
+    try:
+        subject = 'Test Email from MILK&MORE'
+        message = f'This is a test email sent at {datetime.now()}. If you received this, your email configuration is working correctly!'
+        from_email = settings.DEFAULT_FROM_EMAIL
+        
+        result = send_mail(subject, message, from_email, [admin_email], fail_silently=False)
+        print(f"Email sent successfully! Result: {result}")
+        print("=== END EMAIL TEST ===\n")
+        messages.success(request, f"Test email sent to {admin_email}. Please check your inbox!")
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        print("=== END EMAIL TEST ===\n")
+        messages.error(request, f"Failed to send test email: {str(e)}")
+    
+    return redirect('admin-orders')

@@ -2,130 +2,255 @@
 {% load static %}
 {% block title %}Delivery Dashboard{% endblock title %}
 {% block main %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-sm-3 border-end">
-            <style>
-                .delivery-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: #ef4444;
-                    color: white;
-                    border-radius: 50%;
-                    width: 24px;
-                    height: 24px;
-                    font-size: 0.75rem;
-                    font-weight: 700;
-                    margin-left: auto;
-                    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-                    animation: pulse 2s infinite;
-                }
+<style>
+    .delivery-sidebar {
+        padding: 2rem 1.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+        min-height: 100vh;
+        border-right: 2px solid #e9ecef;
+    }
 
-                @keyframes pulse {
-                    0%, 100% {
-                        opacity: 1;
-                    }
-                    50% {
-                        opacity: 0.7;
-                    }
-                }
+    .delivery-sidebar-item {
+        display: grid;
+        margin-bottom: 1.5rem;
+    }
 
-                .delivery-nav-item {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 100%;
-                    gap: 0.5rem;
-                    padding: 0.5rem !important;
-                }
+    .delivery-sidebar-item a {
+        padding: 1rem 1.25rem !important;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
 
-                .delivery-nav-item span:first-child {
-                    flex: 1;
-                    text-align: left;
-                }
-            </style>
-            <ul class="list-unstyled">
-                <li class="d-grid"><a href="{% url 'delivery-dashboard' %}" class="btn btn-primary mb-3">Dashboard</a>
-                </li>
-                <li class="d-grid">
-                    <a href="{% url 'delivery-orders' %}" class="btn mb-3 delivery-nav-item">
-                        <span>Assigned Orders</span>
-                        {% if delivery_pending_orders > 0 %}<span class="delivery-badge">{{ delivery_pending_orders }}</span>{% endif %}
-                    </a>
-                </li>
-                <li class="d-grid"><a href="{% url 'delivery-profile' %}" class="btn mb-3">Profile</a></li>
-            </ul>
+    .delivery-sidebar-item a.btn-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
+    }
+
+    .delivery-sidebar-item a.btn-primary:hover {
+        background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.35);
+    }
+
+    .delivery-sidebar-item a.btn-secondary {
+        background: white;
+        color: #495057;
+        border: 2px solid #dee2e6 !important;
+    }
+
+    .delivery-sidebar-item a.btn-secondary:hover {
+        background: #f8f9fa;
+        border-color: #007bff !important;
+        color: #007bff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    }
+
+    .delivery-nav-label {
+        flex: 1;
+        text-align: left;
+        font-size: 0.95rem;
+    }
+
+    .delivery-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+    }
+
+    .delivery-main-content {
+        padding: 2rem 2.5rem;
+        background: white;
+    }
+
+    .delivery-welcome-title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 2rem;
+        border-bottom: 3px solid #007bff;
+        padding-bottom: 1rem;
+    }
+
+    .stat-card {
+        border-radius: 12px;
+        border: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    .stat-card:hover::before {
+        opacity: 1;
+    }
+
+    .stat-card h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card p {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row" style="min-height: 100vh;">
+        <div class="col-lg-3 delivery-sidebar">
+            <div class="delivery-sidebar-item">
+                <a href="{% url 'delivery-dashboard' %}" class="btn btn-primary">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    <span class="delivery-nav-label">Dashboard</span>
+                </a>
+            </div>
+            <div class="delivery-sidebar-item">
+                <a href="{% url 'delivery-orders' %}" class="btn btn-secondary">
+                    <span class="delivery-nav-label">
+                        <i class="bi bi-box-seam me-2"></i>Assigned Orders
+                    </span>
+                    {% if delivery_pending_orders > 0 %}<span class="delivery-badge">{{ delivery_pending_orders }}</span>{% endif %}
+                </a>
+            </div>
+            <div class="delivery-sidebar-item">
+                <a href="{% url 'delivery-profile' %}" class="btn btn-secondary">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <span class="delivery-nav-label">Profile</span>
+                </a>
+            </div>
         </div>
-        <div class="col-sm-9 ps-5">
-            <h2 class="mb-4">Welcome, {{request.user.deliveryperson.name}}</h2>
-            <div class="row g-4">
+        <div class="col-lg-9 delivery-main-content">
+            <h2 class="delivery-welcome-title">Welcome, {{request.user.deliveryperson.name}}</h2>
+            
+            <div class="row g-4 mb-5">
                 <div class="col-md-3">
-                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
-                        <h1 class="text-primary">{{total_assigned}}</h1>
-                        <p class="mb-0 text-muted">Total Assigned</p>
-                    </div>
+                    <a href="{% url 'delivery-orders' %}" style="text-decoration: none; color: inherit;">
+                        <div class="card stat-card p-4 shadow-sm bg-light">
+                            <h1 class="text-primary">{{total_assigned}}</h1>
+                            <p class="mb-0 text-muted">Total Assigned</p>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
-                        <h1 class="text-warning">{{pending_deliveries}}</h1>
-                        <p class="mb-0 text-muted">Pending</p>
-                    </div>
+                    <a href="{% url 'delivery-orders' %}?status=Packed" style="text-decoration: none; color: inherit;">
+                        <div class="card stat-card p-4 shadow-sm bg-light">
+                            <h1 class="text-warning">{{pending_deliveries}}</h1>
+                            <p class="mb-0 text-muted">Pending Acceptance</p>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
-                        <h1 class="text-success">{{completed_deliveries}}</h1>
-                        <p class="mb-0 text-muted">Completed</p>
-                    </div>
+                    <a href="{% url 'delivery-orders' %}?status=Delivered" style="text-decoration: none; color: inherit;">
+                        <div class="card stat-card p-4 shadow-sm bg-light">
+                            <h1 class="text-success">{{completed_deliveries}}</h1>
+                            <p class="mb-0 text-muted">Completed</p>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-md-3">
-                    <div class="card p-3 shadow-sm border-0 text-center bg-light">
-                        <h1 class="text-danger">{{failed_deliveries}}</h1>
-                        <p class="mb-0 text-muted">Failed</p>
-                    </div>
+                    <a href="{% url 'delivery-orders' %}?status=Failed%20Delivery" style="text-decoration: none; color: inherit;">
+                        <div class="card stat-card p-4 shadow-sm bg-light">
+                            <h1 class="text-danger">{{failed_deliveries}}</h1>
+                            <p class="mb-0 text-muted">Failed Deliveries</p>
+                        </div>
+                    </a>
                 </div>
             </div>
 
-            <div class="row mt-4">
+            <div class="row g-4">
                 <div class="col-md-4">
-                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card" style="cursor: pointer;" 
+                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card earnings-card" style="cursor: pointer;" 
                          data-bs-toggle="modal" data-bs-target="#todayEarningsModal">
-                        <h4 class="mb-3 text-primary">Today's Earnings</h4>
-                        <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-3 text-primary fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-lightning-charge"></i> Today's Earnings
+                        </h5>
+                        <div class="d-flex justify-content-between align-items-end">
                             <div>
-                                <p class="text-muted mb-1">Earned Today</p>
-                                <h2 class="fw-bold" style="color: var(--primary);">₹{{today_earnings}}</h2>
-                                <small class="text-muted"><i class="bi bi-calendar-event me-1"></i> View Detail</small>
+                                <p class="text-muted mb-2 small">Earned Today</p>
+                                <h2 class="fw-bold text-primary mb-2">₹{{today_earnings}}</h2>
+                                <small class="text-muted d-flex align-items-center gap-1">
+                                    <i class="bi bi-chevron-right"></i> View Breakdown
+                                </small>
                             </div>
-                            <i class="bi bi-lightning-charge display-5 text-primary opacity-25"></i>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card" style="cursor: pointer;" 
+                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card earnings-card" style="cursor: pointer;" 
                          data-bs-toggle="modal" data-bs-target="#monthEarningsModal">
-                        <h4 class="mb-3 text-success">Monthly Earnings</h4>
-                        <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-3 text-success fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-graph-up-arrow"></i> Monthly Earnings
+                        </h5>
+                        <div class="d-flex justify-content-between align-items-end">
                             <div>
-                                <p class="text-muted mb-1">{{now|date:"F"}} Earnings</p>
-                                <h2 class="fw-bold text-success">₹{{month_earnings}}</h2>
-                                <small class="text-muted"><i class="bi bi-calendar-month me-1"></i> View Detail</small>
+                                <p class="text-muted mb-2 small">{{now|date:"F"}} Earnings</p>
+                                <h2 class="fw-bold text-success mb-2">₹{{month_earnings}}</h2>
+                                <small class="text-muted d-flex align-items-center gap-1">
+                                    <i class="bi bi-chevron-right"></i> View Budget
+                                </small>
                             </div>
-                            <i class="bi bi-graph-up-arrow display-5 text-success opacity-25"></i>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card" style="cursor: pointer;"
+                    <div class="card p-4 shadow-sm border-0 bg-white h-100 dash-card earnings-card" style="cursor: pointer;"
                          data-bs-toggle="modal" data-bs-target="#codModal">
-                        <h4 class="mb-3 text-warning">COD Collected</h4>
-                        <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-3 text-warning fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-cash-stack"></i> COD Collected
+                        </h5>
+                        <div class="d-flex justify-content-between align-items-end">
                             <div>
-                                <p class="text-muted mb-1">Total Cash</p>
-                                <h2 class="fw-bold text-warning">₹{{total_cod_collected}}</h2>
-                                <small class="text-muted"><i class="bi bi-cash-stack me-1"></i> View Detail</small>
+                                <p class="text-muted mb-2 small">Total Cash On Hand</p>
+                                <h2 class="fw-bold text-warning mb-2">₹{{total_cod_collected}}</h2>
+                                <small class="text-muted d-flex align-items-center gap-1">
+                                    <i class="bi bi-chevron-right"></i> View Details
+                                </small>
                             </div>
-                            <i class="bi bi-currency-rupee display-5 text-warning opacity-25"></i>
                         </div>
                     </div>
                 </div>
@@ -256,12 +381,31 @@
 
 <style>
     .dash-card {
-        transition: transform 0.3s ease, border 0.3s ease;
-        border: 1px solid transparent !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e9ecef !important;
     }
+    
     .dash-card:hover {
-        transform: translateY(-5px);
-        border: 1px solid var(--primary-light) !important;
+        transform: translateY(-6px);
+        border-color: var(--primary) !important;
+        box-shadow: 0 15px 35px rgba(0, 123, 255, 0.15) !important;
+    }
+    
+    .earnings-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+    }
+    
+    .earnings-card h5 {
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .earnings-card h2 {
+        font-size: 1.75rem;
+    }
+    
+    .earnings-card .bi {
+        font-size: 1.1rem;
     }
 </style>
 {% endblock main %}

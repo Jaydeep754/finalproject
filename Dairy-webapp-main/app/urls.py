@@ -78,6 +78,8 @@ urlpatterns = [
     path("delivery-update-status/<int:pk>/", delivery_update_status, name="delivery-update-status"),
     path("delivery-profile/", delivery_profile, name="delivery-profile"),
     path("delivery-otp-verify/<int:pk>/", delivery_otp_verify, name="delivery-otp-verify"),
+    path("delivery-accept-order/<int:pk>/", delivery_accept_order, name="delivery-accept-order"),
+    path("delivery-reject-order/<int:pk>/", delivery_reject_order, name="delivery-reject-order"),
     
     # Admin - Delivery Person Management
     path("admin-delivery-persons/", admin_delivery_persons, name="admin-delivery-persons"),
@@ -97,6 +99,9 @@ urlpatterns = [
 
     # Invoice Generation
     path("download-invoice/<int:payment_id>/", download_invoice, name="download-invoice"),
+    
+    # Testing
+    path("test-email/", test_email, name="test-email"),
     
     # AJAX - Mark notification as seen
     path("ajax-mark-notification-seen/", mark_notification_seen, name="mark-notification-seen"),

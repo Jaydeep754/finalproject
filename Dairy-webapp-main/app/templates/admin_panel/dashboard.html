@@ -7,19 +7,6 @@
 {% block content %}
 <div class="row g-4 mb-4">
     <div class="col-md-3">
-        <a href="{% url 'admin-payments' %}" class="text-decoration-none">
-            <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                <div class="stat-icon icon-emerald">
-                    <i class="fa-solid fa-indian-rupee-sign"></i>
-                </div>
-                <div class="stat-info">
-                    <h2>₹{{ total_revenue|floatformat:2 }}</h2>
-                    <p>Total Revenue</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-3">
         <a href="{% url 'admin-customers' %}" class="text-decoration-none">
             <div class="glass-card stat-card" style="cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                 <div class="stat-icon icon-blue">
