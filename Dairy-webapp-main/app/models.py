@@ -73,6 +73,7 @@ class Customer(models.Model):
     mobile =models.IntegerField()
     zipcode = models.IntegerField()
     state = models.CharField(choices=STATE_CHOICES,max_length=50)
+    viewed_by_admin = models.BooleanField(default=False)
 
 
     def __str__(self) -> str:
@@ -97,12 +98,14 @@ class Payment(models.Model):
     razorpay_payment_status = models.CharField(max_length=50,blank=True,null=True)
     razorpay_payment_id = models.CharField(max_length=50,blank=True,null=True)
     paid = models.BooleanField(default=False)
+    viewed_by_admin = models.BooleanField(default=False)
 
 class DeliveryPerson(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     mobile = models.CharField(max_length=15)
     address = models.TextField()
+    viewed_by_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
